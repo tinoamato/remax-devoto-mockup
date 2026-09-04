@@ -1,9 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
-import { EMAIL_RECEPCION, isoDia, type Jurisdiccion, type Operacion, type Registro, type Uso } from "../datos";
+import {
+  cierreDe,
+  EMAIL_RECEPCION,
+  isoDia,
+  type Jurisdiccion,
+  type Operacion,
+  type Registro,
+  type Uso,
+} from "../datos";
 import {
   CAMPO_VIGENCIA,
   campoVisible,
   faltantes,
+  fechaCorta,
   fechaDia,
   plantillaPorId,
   plantillas,
@@ -267,7 +276,8 @@ export default function Generador() {
   );
 
   function precargar(p: Plantilla, madre: Registro | null) {
-    const v: Record<string, string> = {};
+    // La adenda hereda todo lo que ya contestó la reserva: partes, inmueble y montos.
+    const v: Record<string, string> = madre ? { ...madre.valores } : {};
     for (const s of p.secciones)
       for (const c of s.campos) v[c.id] = c.tipo === "fecha" ? isoDia(Date.now()) : (c.sugerido ?? "");
     if (madre) {
@@ -275,6 +285,7 @@ export default function Generador() {
       v.direccion = madre.direccion;
       v.unidad = madre.unidad;
       v.oferente = madre.contraparte;
+      v.observaciones = "";
     }
     setValores(v);
   }
@@ -318,6 +329,31 @@ export default function Generador() {
     return a && m && dd ? new Date(a, m - 1, dd).getTime() : Date.now();
   }, [valores]);
 
+  /** El plazo de la reserva que esta adenda prorroga. */
+  const plazoMadre = useMemo(
+    () => reservaMadre?.plazos.find((p) => p.rotulo === valores.plazoAfectado) ?? null,
+    [reservaMadre, valores.plazoAfectado],
+  );
+
+  /**
+   * Datos que el documento pide pero nadie tipea: salen de la reserva de origen
+   * y del plazo elegido. Van formateados porque se imprimen tal cual.
+   */
+  const valoresDocumento = useMemo(() => {
+    if (!reservaMadre) return valores;
+    const dias = Number(valores.diasProrroga) || 0;
+    return {
+      ...valores,
+      fechaReserva: fechaCorta(reservaMadre.vigenciaDesde),
+      vencimientoOriginal: plazoMadre ? fechaCorta(plazoMadre.original) : "",
+      diasPlazoOriginal: plazoMadre
+        ? String(Math.round((plazoMadre.original - reservaMadre.vigenciaDesde) / 86_400_000))
+        : "",
+      nuevoVencimiento: dias > 0 ? fechaCorta(cierreDe(desdeVigencia + dias * 86_400_000)) : "",
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [valores, reservaMadre, plazoMadre, desdeVigencia]);
+
   /** El choque de reservas se avisa antes de registrar, no después. */
   const choque = useMemo(() => {
     if (!plantilla || esAdenda) return null;
@@ -345,7 +381,7 @@ export default function Generador() {
       setIntento(true);
       return;
     }
-    d({ t: "registro.crear", plantillaId: plantilla.id, valores });
+    d({ t: "registro.crear", plantillaId: plantilla.id, valores: valoresDocumento });
     setRegistrado(esAdenda ? "adenda" : "documento");
   }
 
@@ -566,6 +602,33 @@ export default function Generador() {
 
                 <PlazosPrevistos plantilla={plantilla} valores={valores} desde={desdeVigencia} />
 
+                {esAdenda && plazoMadre && (
+                  <div className="rounded-[var(--r-sm)] border border-[var(--sello-borde)] bg-[var(--sello-tenue)]/50 px-3 py-2.5">
+                    <p className="rotulo" style={{ color: "var(--sello)" }}>
+                      Cómo queda el plazo
+                    </p>
+                    <p className="text-[12.5px] text-[var(--tinta-media)] mt-1">
+                      «{plazoMadre.rotulo}» vencía el{" "}
+                      <span className="num">{fechaCorta(plazoMadre.vence)}</span>.
+                      {valoresDocumento.nuevoVencimiento ? (
+                        <>
+                          {" "}
+                          Con esta prórroga pasa a vencer el{" "}
+                          <span className="num font-semibold" style={{ color: "var(--sello)" }}>
+                            {valoresDocumento.nuevoVencimiento}
+                          </span>
+                          .
+                        </>
+                      ) : (
+                        " Completá los días de prórroga para ver la fecha nueva."
+                      )}
+                    </p>
+                    <p className="text-[11.5px] text-[var(--tinta-suave)] mt-1">
+                      Se cuenta desde la firma de la adenda, como dice el documento.
+                    </p>
+                  </div>
+                )}
+
                 {intento && pendientes.length > 0 && (
                   <p className="flex items-start gap-1.5 text-[12.5px] text-[var(--lacre)]">
                     <Icono n="alerta" s={14} className="mt-[2px] shrink-0" />
@@ -595,7 +658,7 @@ export default function Generador() {
 
             <div className="max-h-[52vh] lg:max-h-[calc(100dvh-260px)] overflow-y-auto scroll bg-[var(--papel-hundido)]/40 p-3">
               <div className="alza rounded-[var(--r-sm)] overflow-hidden">
-                <Hoja plantilla={plantilla} valores={valores} ahora={e.ahora} compacta />
+                <Hoja plantilla={plantilla} valores={valoresDocumento} ahora={e.ahora} compacta />
               </div>
             </div>
 
@@ -604,7 +667,7 @@ export default function Generador() {
                 <Boton
                   chico
                   ico="imprimir"
-                  onClick={() => imprimirDocumento(htmlDocumento(plantilla, valores, e.ahora))}
+                  onClick={() => imprimirDocumento(htmlDocumento(plantilla, valoresDocumento, e.ahora))}
                 >
                   Imprimir o guardar PDF
                 </Boton>

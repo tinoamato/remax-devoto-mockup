@@ -84,6 +84,8 @@ export type Accion =
       motivo: string;
       nuevoPrecio?: number;
       autor?: string;
+      /** Desde qué día se cuenta la prórroga. Por defecto, el vencimiento vigente. */
+      desde?: number;
     }
   | { t: "doc.enviar"; registroId: string; destino: "recepcion" | "cliente"; direccion: string }
   | { t: "factura.set"; asesorId: string; mes: number; monto: number }
@@ -167,9 +169,9 @@ function reducir(e: Estado, a: Accion): Estado {
           t: "adenda.registrar",
           registroId: padre.id,
           plazoId,
-          dias: Number(a.valores.diasExtension) || 0,
-          motivo: a.valores.otraCondicion || a.valores.observaciones || "Extensión de plazo por adenda.",
-          nuevoPrecio: a.valores.cambiaPrecio === "Sí, cambia" ? Number(a.valores.nuevoPrecio) : undefined,
+          dias: Number(a.valores.diasProrroga) || 0,
+          motivo: a.valores.observaciones || "Prórroga de la reserva.",
+          desde: Number.isFinite(desdeIso(iso)) ? desdeIso(iso) : e.ahora,
           autor: asesor?.nombre ?? "Asesor",
         });
       }
@@ -311,7 +313,9 @@ function reducir(e: Estado, a: Accion): Estado {
         nuevoPrecio: a.nuevoPrecio,
         autor: a.autor ?? "Gerencia",
       };
-      const nuevo = cierreDe(p.vence + a.dias * dia);
+      // La prórroga del papel corre desde la firma de la adenda; cuando gerencia
+      // sólo corrige una fecha, se cuenta desde el vencimiento que había.
+      const nuevo = a.desde !== undefined ? cierreDe(a.desde + a.dias * dia) : cierreDe(p.vence + a.dias * dia);
       return {
         ...e,
         adendas: [ad, ...e.adendas],

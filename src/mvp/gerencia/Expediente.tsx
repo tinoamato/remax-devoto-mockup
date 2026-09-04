@@ -67,7 +67,9 @@ function EditarVigencia({
   const [motivo, setMotivo] = useState("");
   const [via, setVia] = useState<Via>("adenda");
   const n = Number(dias) || 0;
-  const nueva = new Date(plazo.vence + n * 86_400_000);
+  // La adenda es una prórroga y corre desde su firma; lo demás corrige el vencimiento.
+  const base = via === "adenda" ? Date.now() : plazo.vence;
+  const nueva = new Date(base + n * 86_400_000);
 
   return (
     <Modal
@@ -128,6 +130,11 @@ function EditarVigencia({
             {nueva.toLocaleDateString("es-AR", { weekday: "long", day: "2-digit", month: "long" })}
           </span>
           .
+        </p>
+        <p className="text-[11.5px] text-[var(--tinta-tenue)] mt-1">
+          {via === "adenda"
+            ? "La prórroga se cuenta desde la firma de la adenda, que es hoy."
+            : "La corrección se cuenta desde el vencimiento que hay cargado."}
         </p>
       </div>
 
@@ -496,6 +503,7 @@ export default function Expediente() {
                 plazoId: mover.id,
                 dias,
                 motivo: motivo || "Adenda firmada por las partes.",
+                desde: Date.now(),
               });
             } else {
               d({

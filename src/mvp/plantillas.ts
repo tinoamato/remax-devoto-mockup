@@ -6,6 +6,7 @@
    ───────────────────────────────────────────────────────────── */
 
 import { desdeIso, type Jurisdiccion, type Operacion, type Uso } from "./datos";
+import { enLetras, mesLargo } from "./letras";
 
 export type TipoCampo =
   | "texto"
@@ -50,12 +51,18 @@ export interface DefPlazo {
 export interface Clausula {
   titulo?: string;
   texto: string;
+  /** El título va en su propio renglón, como los apartados de los papeles reales. */
+  bloque?: boolean;
   visibleSi?: { campo: string; valores: string[] };
 }
 
 export interface Plantilla {
   id: string;
   nombre: string;
+  /** Encabezado impreso, cuando no alcanza con el nombre interno. */
+  titulo?: string;
+  /** Pies de firma del documento. Por defecto, oferente y martillera. */
+  firmas?: string[];
   jurisdiccion: Jurisdiccion;
   operacion: Operacion;
   uso: Uso;
@@ -104,6 +111,20 @@ const inmueble = (conUso = true): Seccion => ({
     { id: "propietario", pregunta: "Nombre del propietario", tipo: "texto", requerido: true },
     ...(conUso
       ? [
+          { id: "localidad", pregunta: "Barrio o localidad", tipo: "texto" as const, requerido: true },
+          {
+            id: "dniPropietario",
+            pregunta: "DNI o CUIT del propietario",
+            tipo: "texto" as const,
+            requerido: true,
+          },
+          {
+            id: "emailPropietario",
+            pregunta: "Domicilio electrónico del propietario",
+            ayuda: "El correo donde el propietario acepta recibir las comunicaciones.",
+            tipo: "texto" as const,
+            requerido: true,
+          },
           {
             id: "estadoEntrega" as const,
             pregunta: "¿En qué estado se entrega?",
@@ -324,15 +345,30 @@ const reservaPba: Plantilla = {
 
 /* ── 3. Adenda de reserva ───────────────────────────────────── */
 
+/**
+ * Transcripción del documento real de la oficina
+ * («ADENDA PRORROGA RESERVA DE COMPRA CABA»). El texto fijo va tal cual;
+ * lo que en el Word son puntos suspensivos son las variables.
+ *
+ * Ojo con la cuenta: el papel dice que la prórroga corre «a partir de la firma
+ * del presente convenio», no desde el vencimiento original. Por eso la fecha de
+ * firma es una pregunta y el nuevo vencimiento sale de ahí.
+ */
 const adenda: Plantilla = {
   id: "adenda",
-  nombre: "Adenda — Extensión de plazo de reserva",
+  nombre: "Adenda — Prórroga de reserva de compra CABA",
+  titulo: "ADENDA A LA RESERVA DE COMPRA CABA",
   jurisdiccion: "CABA",
   operacion: "Venta",
   uso: "Residencial",
-  resumen: "Se cuelga de una reserva ya registrada y corre la fecha de vencimiento que elijas.",
+  resumen: "Prorroga una reserva ya registrada. Los datos de las partes y del inmueble los trae de ella.",
   campoContraparte: "oferente",
   esAdenda: true,
+  firmas: [
+    "FIRMA PROPIETARIO\nACLARACIÓN",
+    "FIRMA OFERENTE RESERVANTE\nACLARACIÓN",
+    "FIRMA MARTILLERA Y CORREDORA PÚBLICA\nMaría Eugenia Blanco · CUCICBA 7834",
+  ],
   secciones: [
     {
       id: "vinculo",
@@ -341,51 +377,37 @@ const adenda: Plantilla = {
         {
           id: "registroPadre",
           pregunta: "¿A qué reserva corresponde esta adenda?",
-          ayuda: "Sólo aparecen las reservas vigentes que registraste vos.",
+          ayuda: "Viene de la reserva desde la que entraste. De ella salen las partes, el inmueble y los montos.",
           tipo: "opcion",
           opciones: [],
           requerido: true,
         },
         {
           id: "plazoAfectado",
-          pregunta: "¿Qué plazo se extiende?",
+          pregunta: "¿Qué plazo se prorroga?",
           tipo: "opcion",
           opciones: [],
           requerido: true,
         },
-        {
-          id: "diasExtension",
-          pregunta: "¿Por cuántos días se extiende?",
-          tipo: "dias",
-          requerido: true,
-          sugerido: "30",
-        },
       ],
     },
     {
-      id: "condiciones",
-      titulo: "¿Cambia alguna condición?",
+      id: "prorroga",
+      titulo: "La prórroga",
       campos: [
         {
-          id: "cambiaPrecio",
-          pregunta: "¿Se modifica el precio de la operación?",
-          tipo: "opcion",
-          opciones: ["No, se mantiene", "Sí, cambia"],
+          id: CAMPO_VIGENCIA,
+          pregunta: "¿Qué día se firma esta adenda?",
+          ayuda: "La prórroga se cuenta desde la firma, así que de esta fecha sale el nuevo vencimiento.",
+          tipo: "fecha",
           requerido: true,
-          sugerido: "No, se mantiene",
         },
         {
-          id: "nuevoPrecio",
-          pregunta: "¿Cuál es el nuevo precio total?",
-          tipo: "moneda",
+          id: "diasProrroga",
+          pregunta: "¿Por cuántos días corridos se prorroga?",
+          tipo: "dias",
           requerido: true,
-          visibleSi: { campo: "cambiaPrecio", valores: ["Sí, cambia"] },
-        },
-        {
-          id: "otraCondicion",
-          pregunta: "¿Se acuerda alguna otra condición?",
-          ayuda: "Por ejemplo un comodato de días para la mudanza del propietario.",
-          tipo: "parrafo",
+          sugerido: "30",
         },
       ],
     },
@@ -395,26 +417,36 @@ const adenda: Plantilla = {
   cuerpo: [
     {
       texto:
-        "En la Ciudad Autónoma de Buenos Aires, a los {{hoy}}, las partes intervinientes en la reserva {{registroPadre}} sobre el inmueble sito en {{direccion}}, {{unidad}}, acuerdan suscribir la presente ADENDA en los términos que siguen.",
+        "En Buenos Aires, a los {{vigenciaDesdeDia}} días del mes de {{vigenciaDesdeMes}} de {{vigenciaDesdeAnio}}.",
     },
     {
-      titulo: "PRIMERA — Extensión",
+      titulo: "REUNIDOS",
+      bloque: true,
       texto:
-        "Se extiende el plazo de {{plazoAfectado}} por {{diasExtension}} días corridos adicionales, contados a partir del vencimiento originalmente pactado. Todas las demás condiciones de la reserva se mantienen sin alteración.",
+        "El Sr/a {{propietario}} DNI N° {{dniPropietario}} constituyendo domicilio electrónico {{emailPropietario}}, en adelante el PROPIETARIO y por la otra parte Sr/a {{oferente}} DNI {{dniOferente}} constituyendo domicilio electrónico {{emailOferente}}, en adelante el OFERENTE-RESERVANTE y la Martillera y Corredora Pública María Eugenia Blanco CUCICBA 7834.",
     },
     {
-      titulo: "SEGUNDA — Precio",
-      texto: "Las partes acuerdan modificar el precio total de la operación, que queda fijado en USD {{nuevoPrecio}}.",
-      visibleSi: { campo: "cambiaPrecio", valores: ["Sí, cambia"] },
-    },
-    {
-      titulo: "TERCERA — Otras condiciones",
-      texto: "{{otraCondicion}}",
-    },
-    {
-      titulo: "CUARTA — Ratificación",
+      titulo: "EXPONEN",
+      bloque: true,
       texto:
-        "En todo lo que no resulte expresamente modificado por la presente, las partes ratifican íntegramente los términos de la reserva original, que continúa plenamente vigente.",
+        "Que el día {{fechaReserva}} PROPIETARIO y OFERENTE celebraron de común acuerdo una Oferta/Reserva sobre la propiedad de la calle {{direccion}} {{unidad}} localidad {{localidad}} CABA por un plazo de {{diasPlazoOriginal}} días con un importe de Dólares Estadounidenses Billetes {{montoReservaLetras}} (U$S {{montoReserva}}) con vencimiento el día {{vencimientoOriginal}} cuyo valor de venta se fijó de común acuerdo por el precio total y definitivo de Dólares Estadounidenses Billetes {{precioOfertadoLetras}} (U$S {{precioOfertado}}).",
+    },
+    {
+      titulo: "ACUERDAN",
+      bloque: true,
+      texto:
+        "Encontrándose conformada la Reserva de Compra las partes convienen en celebrar en este acto una Prórroga de la Reserva por un plazo de {{diasProrrogaLetras}} ({{diasProrroga}}) días corridos contados a partir de la firma del presente convenio cuyo vencimiento opera indefectiblemente el día {{nuevoVencimiento}}.",
+    },
+    {
+      texto:
+        "Las partes firmantes ratifican aceptar de común acuerdo esta ADENDA prestando total conformidad manteniendo al propio tiempo plenamente vigentes las cláusulas términos y condiciones de la OFERTA RESERVA mencionada que no se reiteran en este documento.",
+    },
+    {
+      texto:
+        "En caso de utilización de la firma electrónica con identificación biométrica provista por la herramienta “Contractia” las partes aceptan sus términos y condiciones renunciando a desconocer su firma electrónica en el futuro.",
+    },
+    {
+      texto: "En prueba de ello se firma dos ejemplares de un mismo tenor y a un solo efecto.",
     },
   ],
 };
@@ -584,14 +616,60 @@ const CAMPOS_MONTO = new Set([
   "canonMensual",
 ]);
 
+/** Los campos de tipo fecha de todas las plantillas, para saber cómo imprimirlos. */
+let camposFecha: Set<string> | null = null;
+function esFecha(id: string) {
+  camposFecha ??= new Set(
+    plantillas.flatMap((p) => p.secciones.flatMap((s) => s.campos.filter((c) => c.tipo === "fecha").map((c) => c.id))),
+  );
+  return camposFecha.has(id);
+}
+
 export function fechaLarga(ts: number) {
   return new Date(ts).toLocaleDateString("es-AR", { day: "numeric", month: "long", year: "numeric" });
+}
+
+export function fechaCorta(ts: number) {
+  return new Date(ts).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
 /** Un aaaa-mm-dd escrito en el documento como corresponde. */
 export function fechaDesdeIso(iso: string) {
   const ts = desdeIso(iso);
   return Number.isFinite(ts) ? fechaLarga(ts) : "";
+}
+
+/**
+ * Cómo se resuelve cada `{{clave}}`:
+ *   hoy                → la fecha de emisión, en letra larga
+ *   <campo>Letras      → el número del campo, escrito con palabras
+ *   <fecha>Dia/Mes/Anio→ una parte suelta de una fecha
+ *   campo de fecha     → dd/mm/aaaa
+ *   campo de monto     → con separador de miles
+ */
+function valorDe(clave: string, v: Record<string, string>, ahora: number): string {
+  if (clave === "hoy") return fechaLarga(ahora);
+
+  if (clave.endsWith("Letras")) return enLetras(v[clave.slice(0, -6)] ?? "");
+
+  for (const [sufijo, parte] of [
+    ["Dia", "dia"],
+    ["Mes", "mes"],
+    ["Anio", "anio"],
+  ] as const) {
+    if (clave.endsWith(sufijo)) {
+      const base = clave.slice(0, -sufijo.length);
+      if (!esFecha(base)) continue;
+      const ts = desdeIso(v[base] ?? "");
+      if (!Number.isFinite(ts)) return "";
+      const d = new Date(ts);
+      return parte === "dia" ? String(d.getDate()) : parte === "mes" ? mesLargo(ts) : String(d.getFullYear());
+    }
+  }
+
+  const bruto = v[clave] ?? "";
+  if (esFecha(clave)) return bruto ? fechaCorta(desdeIso(bruto)) : "";
+  return CAMPOS_MONTO.has(clave) ? fmtMonto(bruto) : bruto;
 }
 
 /** Parte el texto en trozos, marcando cuáles vinieron de una respuesta. */
@@ -606,15 +684,7 @@ export function resolver(
   let m: RegExpExecArray | null;
   while ((m = re.exec(texto))) {
     if (m.index > ult) out.push({ t: texto.slice(ult, m.index), variable: false });
-    const clave = m[1];
-    const bruto =
-      clave === "hoy"
-        ? fechaLarga(ahora)
-        : clave === CAMPO_VIGENCIA
-          ? fechaDesdeIso(v[clave] ?? "")
-          : (v[clave] ?? "");
-    const val = CAMPOS_MONTO.has(clave) ? fmtMonto(bruto) : bruto;
-    out.push({ t: val || "………………", variable: true });
+    out.push({ t: valorDe(m[1], v, ahora) || "………………", variable: true });
     ult = m.index + m[0].length;
   }
   if (ult < texto.length) out.push({ t: texto.slice(ult), variable: false });

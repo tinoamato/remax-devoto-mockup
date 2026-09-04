@@ -30,6 +30,13 @@ generar documentos y a ver los que registró. Todo lo demás es de gerencia.
 - La **adenda** se entra siempre desde la reserva que extiende, en Mis documentos. Ahí queda
   atada: no se puede elegir otra propiedad ni otro documento. Se puede hacer antes de que el
   plazo venza y también después.
+- El texto de la adenda es el del papel real de la oficina («ADENDA PRORROGA RESERVA DE
+  COMPRA CABA»), transcripto tal cual. Al asesor sólo se le preguntan tres cosas: qué plazo
+  prorroga, qué día se firma y por cuántos días. Todo lo demás — partes, DNI, domicilios
+  electrónicos, inmueble, importes, fecha y vencimiento de la reserva original — lo hereda de
+  la reserva. Los importes y los días salen escritos en letras, como pide el documento.
+- Atención a la cuenta: el papel dice que la prórroga corre **desde la firma de la adenda**,
+  no desde el vencimiento original. Así está implementado.
 - Gerencia edita la vigencia del último documento cargado del expediente (la reserva o su
   última adenda) y elige cómo queda registrado: como adenda firmada, pidiéndole al agente por
   correo que la genere, o como simple constancia. Siempre queda en el historial con autor,
@@ -66,8 +73,11 @@ generar documentos y a ver los que registró. Todo lo demás es de gerencia.
 
 ## Definiciones que faltan
 
-- El texto exacto de la reserva de compra residencial de CABA y de la adenda. Lo que está
-  cargado es una redacción de trabajo para ver el flujo; hay que reemplazarla por la real.
+- El texto exacto de la reserva de compra residencial de CABA. Lo que está cargado es una
+  redacción de trabajo; la adenda ya está con el texto real y la reserva falta.
+- El papel de la adenda sólo habla de prorrogar «la Oferta/Reserva». El sistema deja elegir
+  cuál de los plazos se prorroga y de ahí saca los números; confirmar si eso está bien o si
+  la adenda siempre debe referirse al plazo de conformación.
 - La redacción de cada pregunta. El criterio acordado es que no dejen margen de interpretación.
 - Los otros documentos: son unos 40 entre CABA y PBA. Están cargados cinco como muestra.
 - Si el asesor puede editar un documento ya registrado o si siempre tiene que desestimarlo y
