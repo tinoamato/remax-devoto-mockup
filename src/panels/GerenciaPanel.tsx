@@ -36,12 +36,14 @@ function Dato({
   pie,
   color,
   grande,
+  pctBarra,
 }: {
   rotulo: string;
   valor: string;
   pie?: string;
   color?: string;
   grande?: boolean;
+  pctBarra?: number;
 }) {
   return (
     <div className="px-4 py-3">
@@ -53,6 +55,11 @@ function Dato({
         {valor}
       </p>
       {pie && <p className="text-[11.5px] text-[var(--tinta-tenue)] mt-1.5">{pie}</p>}
+      {pctBarra !== undefined && (
+        <div className="mt-1.5">
+          <Barra pct={pctBarra} />
+        </div>
+      )}
     </div>
   );
 }
@@ -102,6 +109,7 @@ function VistaPanel() {
           rotulo="Comisión proyectada"
           valor={usd(comisionProyectada)}
           pie={`${pctObjetivo}% del objetivo · ${usd(objetivoMes)}`}
+          pctBarra={pctObjetivo}
         />
         <Dato
           rotulo="Pipeline activo"
@@ -153,14 +161,11 @@ function VistaPanel() {
                           </span>
                         </span>
                       </span>
-                      <span className="hidden sm:block shrink-0 w-[112px]">
-                        <RielEtapas etapas={ETAPAS} actual={op.etapa} compacto />
-                        <span className="block text-[11px] text-[var(--tinta-tenue)] mt-0.5 truncate">
-                          {ETAPAS[op.etapa]}
-                          {crit > 0 && (
-                            <span style={{ color: "var(--lacre)" }}> · {crit} crít.</span>
-                          )}
-                        </span>
+                      <span className="hidden sm:block shrink-0 w-[112px] text-[12px] text-[var(--tinta-media)] truncate">
+                        {ETAPAS[op.etapa]}
+                        {crit > 0 && (
+                          <span style={{ color: "var(--lacre)" }}> · {crit} crít.</span>
+                        )}
                       </span>
                       <span className="shrink-0 text-right w-[86px]">
                         <Cuenta vence={op.vence} ahora={e.ahora} />
@@ -307,111 +312,86 @@ function VistaPanel() {
             )}
           </Panel>
 
-          {/* Objetivo del mes */}
-          <Panel>
-            <CabezaPanel titulo="Objetivo de septiembre" />
-            <div className="p-3.5">
-              <div className="flex items-baseline justify-between">
-                <p className="num text-[22px] font-semibold">{usd(comisionProyectada)}</p>
-                <p className="num text-[13px] font-semibold text-[var(--sello)]">{pctObjetivo}%</p>
-              </div>
-              <div className="mt-2">
-                <Barra pct={pctObjetivo} />
-              </div>
-              <p className="text-[11.5px] text-[var(--tinta-tenue)] mt-1.5">
-                Faltan {usd(Math.max(0, objetivoMes - comisionProyectada))} para el objetivo
-              </p>
-            </div>
-          </Panel>
-
-          {/* Ranking */}
-          <Panel>
+          {/* Equipo — lo urgente de producción, cadencia y respuesta en un solo lugar */}
+          <Panel className={vencidosContacto.length ? "border-[var(--lacre-borde)]" : undefined}>
             <CabezaPanel
-              titulo="Producción del mes"
+              titulo="Equipo"
               extra={
                 <Boton chico onClick={() => nav.irGerencia("equipo")}>
-                  Equipo
+                  Ver equipo
                 </Boton>
               }
             />
-            {ranking.map((a, i) => (
+            {ranking[0] && (
               <button
-                key={a.id}
                 type="button"
                 onClick={() => {
                   nav.irGerencia("equipo");
-                  nav.abrirAsesor(a.id);
+                  nav.abrirAsesor(ranking[0].id);
                 }}
-                className="w-full flex items-center gap-2.5 px-3.5 py-2 border-b border-[var(--linea-suave)] last:border-b-0 hover:bg-[var(--papel-hundido)]/50 transition-colors text-left"
+                className="w-full flex items-center gap-2.5 px-3.5 py-2.5 border-b border-[var(--linea-suave)] hover:bg-[var(--papel-hundido)]/50 transition-colors text-left"
               >
-                <span className="num text-[11px] text-[var(--tinta-tenue)] w-3">{i + 1}</span>
-                <Inicial txt={a.iniciales} s={24} />
-                <span className="flex-1 min-w-0 text-[12.5px] truncate">{a.nombre}</span>
-                <span className="num text-[12.5px] font-semibold">{usd(a.comisionMes)}</span>
+                <Inicial txt={ranking[0].iniciales} s={24} />
+                <span className="flex-1 min-w-0">
+                  <span className="block text-[12.5px] font-medium truncate">{ranking[0].nombre}</span>
+                  <span className="block text-[10.5px] text-[var(--tinta-tenue)]">Líder del mes</span>
+                </span>
+                <span className="num text-[12.5px] font-semibold">{usd(ranking[0].comisionMes)}</span>
               </button>
-            ))}
-          </Panel>
-
-          {/* Cadencia de contacto con el equipo */}
-          <Panel className={vencidosContacto.length ? "border-[var(--lacre-borde)]" : undefined}>
-            <CabezaPanel
-              titulo="Sin contacto del gerente"
-              cuenta={vencidosContacto.length}
-              extra={
-                <Boton chico ico="pulso" onClick={() => nav.irGerencia("cadencia")}>
-                  Cadencia
-                </Boton>
-              }
-            />
-            {vencidosContacto.length === 0 ? (
-              <Vacio ico="tilde" titulo="Todo el equipo dentro del tope" />
-            ) : (
-              vencidosContacto.slice(0, 4).map((c) => (
-                <button
-                  key={c.asesor.id}
-                  type="button"
-                  onClick={() => nav.abrirAsesor(c.asesor.id)}
-                  className="w-full flex items-center gap-2.5 px-3.5 py-2 border-b border-[var(--linea-suave)] last:border-b-0 hover:bg-[var(--papel-hundido)]/50 transition-colors text-left"
-                >
-                  <Inicial txt={c.asesor.iniciales} s={24} />
-                  <span className="flex-1 min-w-0">
-                    <span className="block text-[12.5px] truncate">{c.asesor.nombre}</span>
-                    <span className="block text-[11px] text-[var(--tinta-tenue)]">
-                      hace {c.desde} d · tope {c.asesor.topeDias}
-                    </span>
-                  </span>
-                  <span className="num text-[12.5px] font-semibold" style={{ color: "var(--lacre)" }}>
-                    +{c.atraso} d
-                  </span>
-                </button>
-              ))
             )}
-          </Panel>
 
-          {/* Tiempo de respuesta */}
-          <Panel>
-            <CabezaPanel titulo="Peor tiempo de respuesta" />
-            {lentos.map((a) => (
-              <div
-                key={a.id}
-                className="flex items-center gap-2.5 px-3.5 py-2 border-b border-[var(--linea-suave)] last:border-b-0"
+            <button
+              type="button"
+              onClick={() => nav.irGerencia("cadencia")}
+              className="w-full flex items-center gap-2.5 px-3.5 py-2.5 border-b border-[var(--linea-suave)] hover:bg-[var(--papel-hundido)]/50 transition-colors text-left"
+            >
+              <span
+                className="grid place-items-center size-6 rounded-[var(--r-xs)] shrink-0"
+                style={{
+                  background: vencidosContacto.length ? "var(--lacre-tenue)" : "var(--verde-tenue)",
+                  color: vencidosContacto.length ? "var(--lacre)" : "var(--verde)",
+                }}
               >
-                <Inicial txt={a.iniciales} s={22} />
-                <span className="flex-1 min-w-0 text-[12.5px] truncate">{a.nombre}</span>
-                <span className="flex-1 max-w-[80px]">
-                  <Barra
-                    pct={(a.minRespuestaProm / 330) * 100}
-                    color={a.minRespuestaProm > 120 ? "var(--lacre)" : "var(--ambar)"}
-                  />
+                <Icono n="pulso" s={13} />
+              </span>
+              <span className="flex-1 min-w-0 text-[12.5px]">
+                {vencidosContacto.length
+                  ? `${vencidosContacto.length} sin contacto del gerente`
+                  : "Cadencia al día"}
+              </span>
+              {vencidosContacto.length > 0 && (
+                <span className="num text-[12.5px] font-semibold" style={{ color: "var(--lacre)" }}>
+                  +{vencidosContacto[0].atraso} d
+                </span>
+              )}
+            </button>
+
+            {lentos[0] && lentos[0].minRespuestaProm > 90 && (
+              <button
+                type="button"
+                onClick={() => nav.abrirAsesor(lentos[0].id)}
+                className="w-full flex items-center gap-2.5 px-3.5 py-2.5 last:border-b-0 hover:bg-[var(--papel-hundido)]/50 transition-colors text-left"
+              >
+                <span
+                  className="grid place-items-center size-6 rounded-[var(--r-xs)] shrink-0"
+                  style={{
+                    background: lentos[0].minRespuestaProm > 120 ? "var(--lacre-tenue)" : "var(--ambar-tenue)",
+                    color: lentos[0].minRespuestaProm > 120 ? "var(--lacre)" : "var(--ambar)",
+                  }}
+                >
+                  <Icono n="reloj" s={13} />
+                </span>
+                <span className="flex-1 min-w-0 text-[12.5px] truncate">
+                  {lentos[0].nombre} responde más lento
                 </span>
                 <span
-                  className="num text-[12px] font-semibold w-12 text-right"
-                  style={{ color: a.minRespuestaProm > 120 ? "var(--lacre)" : "var(--ambar)" }}
+                  className="num text-[12.5px] font-semibold"
+                  style={{ color: lentos[0].minRespuestaProm > 120 ? "var(--lacre)" : "var(--ambar)" }}
                 >
-                  {a.minRespuestaProm}m
+                  {lentos[0].minRespuestaProm}m
                 </span>
-              </div>
-            ))}
+              </button>
+            )}
           </Panel>
         </div>
       </div>
