@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
-import { useApp, useDerivados, type PlazoVivo } from "../tienda";
+import { useApp, useDerivados, type PlazoVivo, type Urgencia } from "../tienda";
 import { useNav } from "../nav";
+import { ordenar, ThOrden, useOrden } from "../tabla";
 import {
   Boton,
   Buscador,
@@ -12,7 +13,6 @@ import {
   Panel,
   PistaScroll,
   Td,
-  Th,
   Vacio,
 } from "../../components/ui";
 import { Icono } from "../../lib/icons";
@@ -56,6 +56,10 @@ function Cifra({
   );
 }
 
+const PESO_URGENCIA: Record<Urgencia, number> = { vencida: 0, hoy: 1, semana: 2, ok: 3 };
+
+type Campo = "vence" | "urgencia" | "plazo" | "asesor" | "contraparte" | "generado";
+
 export default function Vencimientos() {
   const { e } = useApp();
   const nav = useNav();
@@ -63,10 +67,11 @@ export default function Vencimientos() {
   const [q, setQ] = useState("");
   const [asesorId, setAsesorId] = useState("");
   const [foco, setFoco] = useState<"" | "vencida" | "hoy" | "semana">("");
+  const orden = useOrden<Campo>("vence");
 
   const filas = useMemo(() => {
     const t = q.trim().toLowerCase();
-    return plazosVivos
+    const base = plazosVivos
       .filter((p) => !asesorId || p.registro.asesorId === asesorId)
       .filter((p) => !foco || p.urgencia === foco)
       .filter(
@@ -76,7 +81,24 @@ export default function Vencimientos() {
             .toLowerCase()
             .includes(t),
       );
-  }, [plazosVivos, q, asesorId, foco]);
+
+    return ordenar(base, orden, (p, campo) => {
+      switch (campo) {
+        case "urgencia":
+          return PESO_URGENCIA[p.urgencia];
+        case "plazo":
+          return `${p.plazo.rotulo} ${p.registro.direccion}`;
+        case "asesor":
+          return p.asesor.nombre;
+        case "contraparte":
+          return p.registro.contraparte;
+        case "generado":
+          return p.registro.generadoEn;
+        default:
+          return p.plazo.vence;
+      }
+    });
+  }, [plazosVivos, q, asesorId, foco, orden]);
 
   const vigentes = e.registros.filter((r) => r.estado === "vigente").length;
   const conAsesor = (id: string) => e.asesores.find((a) => a.id === id);
@@ -166,7 +188,8 @@ export default function Vencimientos() {
           )}
 
           <p className="px-3.5 py-2 border-b border-[var(--linea-suave)] text-[11.5px] text-[var(--tinta-tenue)]">
-            Del más urgente al que puede esperar. Tocá una fila para abrir el expediente.
+            Del más urgente al que puede esperar. Tocá el nombre de una columna para ordenar por ese campo, o
+            una fila para abrir la reserva.
           </p>
 
           <PistaScroll />
@@ -190,14 +213,24 @@ export default function Vencimientos() {
               <table className="w-full min-w-[760px] border-collapse">
                 <thead>
                   <tr>
-                    <Th ancho={116}>Vence en</Th>
-                    <Th ancho={104}>Estado</Th>
-                    <Th>Plazo y propiedad</Th>
-                    <Th ancho={168}>Asesor</Th>
-                    <Th ancho={150}>Otra parte</Th>
-                    <Th ancho={116} alDer>
+                    <ThOrden campo="vence" orden={orden} ancho={116}>
+                      Vence en
+                    </ThOrden>
+                    <ThOrden campo="urgencia" orden={orden} ancho={104}>
+                      Estado
+                    </ThOrden>
+                    <ThOrden campo="plazo" orden={orden}>
+                      Plazo y propiedad
+                    </ThOrden>
+                    <ThOrden campo="asesor" orden={orden} ancho={168}>
+                      Asesor
+                    </ThOrden>
+                    <ThOrden campo="contraparte" orden={orden} ancho={150}>
+                      Otra parte
+                    </ThOrden>
+                    <ThOrden campo="generado" orden={orden} ancho={116} alDer>
                       Registrado
-                    </Th>
+                    </ThOrden>
                   </tr>
                 </thead>
                 <tbody>

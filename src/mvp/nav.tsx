@@ -2,7 +2,13 @@ import { createContext, useContext, useMemo, useState, type ReactNode } from "re
 
 export type Modo = "asesor" | "gerencia";
 export type VistaAsesor = "generar" | "registros";
-export type VistaGerencia = "vencimientos" | "expedientes" | "facturacion" | "automatizaciones";
+export type VistaGerencia = "vencimientos" | "reservas" | "facturacion" | "automatizaciones";
+
+/** Cuando se entra a hacer una adenda, el generador arranca atado a una reserva. */
+export interface Encargo {
+  plantillaId: string;
+  registroId: string;
+}
 
 interface Nav {
   modo: Modo;
@@ -10,14 +16,14 @@ interface Nav {
   vistaGerencia: VistaGerencia;
   /** Expediente abierto en el cajón lateral. */
   expediente: string | null;
-  /** Plantilla precargada al entrar al generador. */
-  plantillaSugerida: string | null;
+  encargo: Encargo | null;
   irModo: (m: Modo) => void;
   irAsesor: (v: VistaAsesor) => void;
   irGerencia: (v: VistaGerencia) => void;
   abrirExpediente: (id: string | null) => void;
-  generarCon: (plantillaId: string) => void;
-  limpiarSugerida: () => void;
+  /** Manda al generador con la adenda ya elegida y la reserva fijada. */
+  generarAdenda: (plantillaId: string, registroId: string) => void;
+  limpiarEncargo: () => void;
 }
 
 const Ctx = createContext<Nav | null>(null);
@@ -27,7 +33,7 @@ export function NavProveedor({ children }: { children: ReactNode }) {
   const [vistaAsesor, setVistaAsesor] = useState<VistaAsesor>("generar");
   const [vistaGerencia, setVistaGerencia] = useState<VistaGerencia>("vencimientos");
   const [expediente, setExpediente] = useState<string | null>(null);
-  const [plantillaSugerida, setSugerida] = useState<string | null>(null);
+  const [encargo, setEncargo] = useState<Encargo | null>(null);
 
   const v = useMemo<Nav>(
     () => ({
@@ -35,7 +41,7 @@ export function NavProveedor({ children }: { children: ReactNode }) {
       vistaAsesor,
       vistaGerencia,
       expediente,
-      plantillaSugerida,
+      encargo,
       irModo: (m) => {
         setModo(m);
         setExpediente(null);
@@ -50,15 +56,15 @@ export function NavProveedor({ children }: { children: ReactNode }) {
         setModo("gerencia");
       },
       abrirExpediente: setExpediente,
-      generarCon: (id) => {
-        setSugerida(id);
+      generarAdenda: (plantillaId, registroId) => {
+        setEncargo({ plantillaId, registroId });
         setVistaAsesor("generar");
         setModo("asesor");
         setExpediente(null);
       },
-      limpiarSugerida: () => setSugerida(null),
+      limpiarEncargo: () => setEncargo(null),
     }),
-    [modo, vistaAsesor, vistaGerencia, expediente, plantillaSugerida],
+    [modo, vistaAsesor, vistaGerencia, expediente, encargo],
   );
 
   return <Ctx.Provider value={v}>{children}</Ctx.Provider>;

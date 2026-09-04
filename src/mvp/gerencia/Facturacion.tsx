@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useApp, useDerivados, rotuloMes, TRAMOS, type Proyeccion, type Semaforo } from "../tienda";
+import { ordenar, ThFijo, ThOrden, useOrden } from "../tabla";
 import {
   Boton,
   Buscador,
@@ -10,7 +11,6 @@ import {
   Panel,
   PistaScroll,
   Td,
-  Th,
   Vacio,
 } from "../../components/ui";
 import { Icono } from "../../lib/icons";
@@ -21,12 +21,25 @@ const COLOR: Record<Semaforo, string> = {
   medio: "var(--ambar)",
   bajo: "var(--lacre)",
 };
+const FONDO: Record<Semaforo, string> = {
+  alto: "var(--verde-tenue)",
+  medio: "var(--ambar-tenue)",
+  bajo: "var(--lacre-tenue)",
+};
+const BORDE: Record<Semaforo, string> = {
+  alto: "var(--verde-borde)",
+  medio: "var(--ambar-borde)",
+  bajo: "var(--lacre-borde)",
+};
 const ETIQ: Record<Semaforo, string> = { alto: "ok", medio: "hoy", bajo: "vencida" };
 const NOMBRE: Record<Semaforo, string> = {
   alto: "Alto rendimiento",
   medio: "Sostiene",
   bajo: "Low performance",
 };
+
+type Computo = "computan" | "nuevos" | "todos";
+type Campo = "agente" | "antiguedad" | "acumulado" | "estado" | "cae";
 
 /* ── Serie de 12 meses ──────────────────────────────────────── */
 
@@ -52,156 +65,319 @@ function Serie({ f, ahora, alto = 22 }: { f: number[]; ahora: number; alto?: num
   );
 }
 
-/* ── Carga mensual ──────────────────────────────────────────── */
+/* ── Carga de comisiones ────────────────────────────────────── */
 
-function CargarMes({ cerrar }: { cerrar: () => void }) {
+type Modo = "reemplazar" | "sumar";
+
+function CargarComisiones({ cerrar }: { cerrar: () => void }) {
   const { e, d } = useApp();
   const [mes, setMes] = useState(0);
-  const [borrador, setBorrador] = useState<Record<string, string>>(() =>
-    Object.fromEntries(e.asesores.map((a) => [a.id, String(a.facturacion[0] || "")])),
-  );
+  const [modo, setModo] = useState<Modo>("sumar");
+  const [borrador, setBorrador] = useState<Record<string, string>>({});
 
-  const cambiarMes = (m: number) => {
-    setMes(m);
-    setBorrador(Object.fromEntries(e.asesores.map((a) => [a.id, String(a.facturacion[m] || "")])));
+  const valorDe = (id: string) => borrador[id] ?? "";
+  const numero = (id: string) => Number(valorDe(id)) || 0;
+  const cargados = e.asesores.filter((a) => valorDe(a.id).trim() !== "");
+  const total = cargados.reduce((s, a) => s + numero(a.id), 0);
+
+  const guardar = () => {
+    for (const a of cargados) {
+      const v = numero(a.id);
+      if (modo === "sumar") {
+        if (v !== 0) d({ t: "factura.sumar", asesorId: a.id, mes, monto: v });
+      } else if (v !== a.facturacion[mes]) {
+        d({ t: "factura.set", asesorId: a.id, mes, monto: v });
+      }
+    }
+    cerrar();
   };
-
-  const total = Object.values(borrador).reduce((s, v) => s + (Number(v) || 0), 0);
 
   return (
     <Modal
-      titulo="Cargar las comisiones del mes"
-      sub="Una vez por mes, agente por agente. Es lo mismo que hacés hoy en la planilla."
+      titulo="Cargar comisiones"
+      sub="Cuando quieras y sobre el mes que quieras. Sólo se toca lo que completes."
       cerrar={cerrar}
-      ancho={620}
+      ancho={640}
       pie={
         <>
           <Boton onClick={cerrar}>Cancelar</Boton>
-          <Boton
-            tono="primario"
-            onClick={() => {
-              for (const a of e.asesores) {
-                const v = Number(borrador[a.id]) || 0;
-                if (v !== a.facturacion[mes]) d({ t: "factura.set", asesorId: a.id, mes, monto: v });
-              }
-              cerrar();
-            }}
-          >
-            Guardar {rotuloMes(mes, e.ahora)}
+          <Boton tono="primario" onClick={guardar} disabled={cargados.length === 0}>
+            {modo === "sumar" ? "Sumar" : "Reemplazar"} en {rotuloMes(mes, e.ahora)}
           </Boton>
         </>
       }
     >
-      <label className="block mb-3">
-        <span className="rotulo block mb-1">Mes que estás cargando</span>
-        <div className="flex flex-wrap gap-1">
-          {[0, 1, 2].map((m) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => cambiarMes(m)}
-              className={cn(
-                "num h-8 px-3 rounded-[var(--r-sm)] border text-[12.5px] transition-colors",
-                mes === m
-                  ? "bg-[var(--sello-tenue)] border-[var(--sello)] text-[var(--sello)] font-semibold"
-                  : "bg-[var(--papel-alto)] border-[var(--linea-fuerte)] hover:bg-[var(--papel-hundido)]",
-              )}
-            >
-              {rotuloMes(m, e.ahora)}
-            </button>
-          ))}
-        </div>
-      </label>
+      <div className="flex flex-wrap items-end gap-4">
+        <label className="block">
+          <span className="rotulo block mb-1">Mes</span>
+          <div className="flex flex-wrap gap-1">
+            {[0, 1, 2, 3].map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => setMes(m)}
+                className={cn(
+                  "num h-8 px-3 rounded-[var(--r-sm)] border text-[12.5px] transition-colors",
+                  mes === m
+                    ? "bg-[var(--sello-tenue)] border-[var(--sello)] text-[var(--sello)] font-semibold"
+                    : "bg-[var(--papel-alto)] border-[var(--linea-fuerte)] hover:bg-[var(--papel-hundido)]",
+                )}
+              >
+                {rotuloMes(m, e.ahora)}
+              </button>
+            ))}
+          </div>
+        </label>
 
-      <p className="text-[12px] text-[var(--tinta-suave)] mb-2">
-        Poné la comisión que se lleva cada uno. Si sabés que una reserva se va a firmar, cargala igual: el
-        criterio lo ponés vos.
+        <label className="block">
+          <span className="rotulo block mb-1">Qué hacer con lo que ya está</span>
+          <div className="flex items-center rounded-[var(--r-sm)] border border-[var(--linea-fuerte)] p-[2px]">
+            {(
+              [
+                ["sumar", "Sumar"],
+                ["reemplazar", "Reemplazar"],
+              ] as const
+            ).map(([k, l]) => (
+              <button
+                key={k}
+                type="button"
+                aria-pressed={modo === k}
+                onClick={() => setModo(k)}
+                className={cn(
+                  "h-7 px-3 rounded-[2px] text-[12px] font-medium transition-colors",
+                  modo === k
+                    ? "bg-[var(--sello)] text-white"
+                    : "text-[var(--tinta-suave)] hover:text-[var(--tinta)]",
+                )}
+              >
+                {l}
+              </button>
+            ))}
+          </div>
+        </label>
+      </div>
+
+      <p className="text-[12px] text-[var(--tinta-suave)] mt-3">
+        {modo === "sumar"
+          ? "El monto que escribas se agrega a lo que ya tenga cargado ese mes. Sirve para ir sumando operación por operación."
+          : "El monto que escribas pisa lo que tenga cargado ese mes. Sirve para corregir un total mal cargado."}{" "}
+        Lo que dejes vacío queda como está.
       </p>
 
-      <ul className="divide-y divide-[var(--linea-suave)] border-y border-[var(--linea-suave)]">
-        {e.asesores.map((a) => (
-          <li key={a.id} className="flex items-center gap-2.5 py-1.5">
-            <Inicial txt={a.iniciales} s={24} />
-            <span className="text-[12.5px] flex-1 min-w-0 truncate">{a.nombre}</span>
-            <span className="relative">
-              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[11px] text-[var(--tinta-tenue)] pointer-events-none">
-                USD
+      <ul className="divide-y divide-[var(--linea-suave)] border-y border-[var(--linea-suave)] mt-3">
+        {e.asesores.map((a) => {
+          const actual = a.facturacion[mes];
+          const escrito = numero(a.id);
+          const resultado = modo === "sumar" ? actual + escrito : escrito;
+          const tocado = valorDe(a.id).trim() !== "";
+          return (
+            <li key={a.id} className="flex items-center gap-2.5 py-1.5">
+              <Inicial txt={a.iniciales} s={24} />
+              <span className="min-w-0 flex-1">
+                <span className="block text-[12.5px] truncate">{a.nombre}</span>
+                <span className="num block text-[10.5px] text-[var(--tinta-tenue)]">
+                  hoy {usd(actual)}
+                  {tocado && (
+                    <span style={{ color: "var(--sello)" }}> → {usd(Math.max(0, resultado))}</span>
+                  )}
+                </span>
               </span>
-              <input
-                value={borrador[a.id] ?? ""}
-                onChange={(ev) => setBorrador((b) => ({ ...b, [a.id]: ev.target.value }))}
-                inputMode="numeric"
-                aria-label={`Comisión de ${a.nombre}`}
-                className="num w-[124px] h-8 pl-9 pr-2 text-right text-[13px] rounded-[var(--r-sm)] border border-[var(--linea-fuerte)] bg-[var(--papel-hundido)] outline-none focus:bg-[var(--papel-alto)] focus:border-[var(--sello)]"
-              />
-            </span>
-          </li>
-        ))}
+              <span className="relative">
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[11px] text-[var(--tinta-tenue)] pointer-events-none">
+                  {modo === "sumar" ? "+" : "USD"}
+                </span>
+                <input
+                  value={valorDe(a.id)}
+                  onChange={(ev) => setBorrador((b) => ({ ...b, [a.id]: ev.target.value }))}
+                  inputMode="numeric"
+                  placeholder="—"
+                  aria-label={`Comisión de ${a.nombre}`}
+                  className={cn(
+                    "num w-[124px] h-8 pr-2 text-right text-[13px] rounded-[var(--r-sm)] border bg-[var(--papel-hundido)] outline-none focus:bg-[var(--papel-alto)] focus:border-[var(--sello)]",
+                    modo === "sumar" ? "pl-6" : "pl-9",
+                    tocado ? "border-[var(--sello-borde)]" : "border-[var(--linea-fuerte)]",
+                  )}
+                />
+              </span>
+            </li>
+          );
+        })}
       </ul>
 
       <p className="flex items-baseline gap-2 mt-3">
-        <span className="rotulo">Total del mes</span>
+        <span className="rotulo">
+          {modo === "sumar" ? "Se suma en total" : "Nuevo total cargado"} · {cargados.length} agentes
+        </span>
         <span className="num ml-auto text-[15px] font-semibold">{usd(total)}</span>
       </p>
     </Modal>
   );
 }
 
-/* ── Umbrales ───────────────────────────────────────────────── */
+/* ── Configuración ──────────────────────────────────────────── */
 
-function Umbrales() {
+function Configuracion({ cerrar }: { cerrar: () => void }) {
   const { e, d } = useApp();
   const u = e.umbrales;
-  const campo =
-    "num inline-flex items-center h-6 w-[100px] px-1.5 rounded-[var(--r-xs)] border text-[12.5px] font-semibold outline-none bg-[var(--papel-hundido)]";
+
+  const campo = (
+    id: keyof typeof u,
+    rotulo: string,
+    detalle: string,
+    color: string,
+    borde: string,
+    paso: number,
+    sufijo: string,
+  ) => (
+    <label className="block">
+      <span className="rotulo block mb-1">{rotulo}</span>
+      <span className="relative block">
+        <input
+          type="number"
+          step={paso}
+          value={u[id]}
+          onChange={(ev) => d({ t: "umbrales.set", cambio: { [id]: Number(ev.target.value) || 0 } })}
+          className="num w-full h-9 pl-2.5 pr-14 text-[13px] font-semibold rounded-[var(--r-sm)] border bg-[var(--papel-hundido)] outline-none focus:bg-[var(--papel-alto)]"
+          style={{ borderColor: borde, color }}
+        />
+        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] text-[var(--tinta-tenue)] pointer-events-none">
+          {sufijo}
+        </span>
+      </span>
+      <span className="block text-[11.5px] text-[var(--tinta-suave)] mt-1">{detalle}</span>
+    </label>
+  );
 
   return (
-    <div className="px-4 py-3 border-b border-[var(--linea)] bg-[var(--papel-alto)] trama">
-      <div className="flex items-center gap-2 mb-1.5">
-        <Icono n="regla" s={14} className="text-[var(--tinta-tenue)]" />
-        <p className="rotulo">Cómo se define el rendimiento</p>
+    <Modal
+      titulo="Cómo se define el rendimiento"
+      sub="Se mira siempre la comisión acumulada de los últimos 12 meses."
+      cerrar={cerrar}
+      ancho={480}
+      pie={
+        <Boton tono="primario" onClick={cerrar}>
+          Listo
+        </Boton>
+      }
+    >
+      <div className="space-y-4">
+        {campo(
+          "alto",
+          "Alto rendimiento",
+          "Desde este acumulado para arriba, el agente está en verde.",
+          "var(--verde)",
+          "var(--verde-borde)",
+          1000,
+          "USD",
+        )}
+        {campo(
+          "bajo",
+          "Low performance",
+          "Por debajo de este acumulado, el agente entra en low performance.",
+          "var(--lacre)",
+          "var(--lacre-borde)",
+          1000,
+          "USD",
+        )}
+        {campo(
+          "graciaMeses",
+          "Antigüedad mínima para computar",
+          "Un agente con menos meses en la oficina no computa para RE/MAX y queda aparte.",
+          "var(--tinta)",
+          "var(--linea-fuerte)",
+          1,
+          "meses",
+        )}
       </div>
-      <p className="text-[13.5px] leading-[2] text-[var(--tinta-media)]">
-        Se mira la <span className="text-[var(--tinta)] font-semibold">comisión acumulada de 12 meses</span>. Es{" "}
-        <span className="font-semibold" style={{ color: "var(--verde)" }}>
-          alto rendimiento
-        </span>{" "}
-        desde{" "}
-        <input
-          type="number"
-          step={1000}
-          value={u.alto}
-          aria-label="Umbral de alto rendimiento"
-          onChange={(ev) => d({ t: "umbrales.set", cambio: { alto: Number(ev.target.value) || 0 } })}
-          className={campo}
-          style={{ borderColor: "var(--verde-borde)", color: "var(--verde)" }}
-        />{" "}
-        y cae en{" "}
-        <span className="font-semibold" style={{ color: "var(--lacre)" }}>
-          low performance
-        </span>{" "}
-        por debajo de{" "}
-        <input
-          type="number"
-          step={1000}
-          value={u.bajo}
-          aria-label="Umbral de low performance"
-          onChange={(ev) => d({ t: "umbrales.set", cambio: { bajo: Number(ev.target.value) || 0 } })}
-          className={campo}
-          style={{ borderColor: "var(--lacre-borde)", color: "var(--lacre)" }}
-        />
-        . Un agente con menos de{" "}
-        <input
-          type="number"
-          step={1}
-          value={u.graciaMeses}
-          aria-label="Meses de gracia"
-          onChange={(ev) => d({ t: "umbrales.set", cambio: { graciaMeses: Number(ev.target.value) || 0 } })}
-          className={cn(campo, "w-[64px]")}
-          style={{ borderColor: "var(--linea-fuerte)" }}
-        />{" "}
-        meses en la oficina todavía no computa.
+
+      <p className="text-[12px] text-[var(--tinta-suave)] mt-4 pt-3 border-t border-[var(--linea-suave)]">
+        La proyección repite esta misma cuenta suponiendo que el agente no cierra nada nuevo: los meses
+        viejos se van saliendo de la ventana de doce y el acumulado cae solo.
       </p>
+    </Modal>
+  );
+}
+
+/* ── Progresión: una columna por tramo ──────────────────────── */
+
+function Progresion({
+  filas,
+  ahora,
+  alAbrir,
+}: {
+  filas: Proyeccion[];
+  ahora: number;
+  alAbrir: (p: Proyeccion) => void;
+}) {
+  return (
+    <div className="overflow-x-auto scroll">
+      <table className="w-full min-w-[760px] border-collapse">
+        <thead>
+          <tr>
+            <ThFijo>Agente</ThFijo>
+            <ThFijo ancho={110}>Últimos 12 meses</ThFijo>
+            {TRAMOS.map((m) => (
+              <ThFijo key={m} ancho={112} alDer>
+                {m === 0 ? "Hoy" : `+${m} meses`}
+              </ThFijo>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {filas.map((p) => (
+            <tr
+              key={p.asesor.id}
+              onClick={() => alAbrir(p)}
+              className="cursor-pointer hover:bg-[var(--papel-hundido)]/40 transition-colors"
+            >
+              <Td>
+                <span className="flex items-center gap-2.5">
+                  <Inicial txt={p.asesor.iniciales} s={26} />
+                  <span className="min-w-0">
+                    <span className="block font-medium truncate">{p.asesor.nombre}</span>
+                    <span className="num block text-[11px] text-[var(--tinta-tenue)]">
+                      {p.nuevo ? `nuevo · computa en ${p.mesesParaComputar} m` : `${p.asesor.antiguedadMeses} meses`}
+                    </span>
+                  </span>
+                </span>
+              </Td>
+              <Td>
+                <Serie f={p.asesor.facturacion} ahora={ahora} alto={18} />
+              </Td>
+              {p.tramos.map((t) => (
+                <td key={t.m} className="px-1.5 py-1.5 border-b border-[var(--linea-suave)]">
+                  <span
+                    className="flex flex-col items-end justify-center h-[42px] px-2 rounded-[var(--r-sm)] border"
+                    style={
+                      p.nuevo
+                        ? { background: "var(--papel-hundido)", borderColor: "var(--linea)" }
+                        : { background: FONDO[t.estado], borderColor: BORDE[t.estado] }
+                    }
+                    title={
+                      p.nuevo
+                        ? "Todavía no computa"
+                        : `${t.m === 0 ? "Hoy" : `Dentro de ${t.m} meses`}: ${NOMBRE[t.estado]}`
+                    }
+                  >
+                    <span
+                      className="num text-[13px] font-semibold leading-none"
+                      style={{ color: p.nuevo ? "var(--tinta-tenue)" : COLOR[t.estado] }}
+                    >
+                      {usd(t.monto)}
+                    </span>
+                    <span
+                      className="text-[9.5px] uppercase tracking-[0.06em] mt-1 leading-none"
+                      style={{ color: p.nuevo ? "var(--tinta-tenue)" : COLOR[t.estado] }}
+                    >
+                      {p.nuevo ? "no computa" : t.estado === "bajo" ? "low perf." : t.estado === "medio" ? "sostiene" : "alto"}
+                    </span>
+                  </span>
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -211,25 +387,51 @@ function Umbrales() {
 export default function Facturacion() {
   const { e } = useApp();
   const { proyecciones, computan, seApagan, facturacion12 } = useDerivados();
+  const orden = useOrden<Campo>("acumulado");
+
+  const [vista, setVista] = useState<"lista" | "progresion">("lista");
   const [tramo, setTramo] = useState(0);
   const [q, setQ] = useState("");
+  const [computo, setComputo] = useState<Computo>("computan");
   const [soloRiesgo, setSoloRiesgo] = useState(false);
   const [cargando, setCargando] = useState(false);
+  const [config, setConfig] = useState(false);
   const [detalle, setDetalle] = useState<Proyeccion | null>(null);
 
   const idx = TRAMOS.indexOf(tramo as (typeof TRAMOS)[number]);
 
   const filas = useMemo(() => {
     const t = q.trim().toLowerCase();
-    return proyecciones
+    const base = proyecciones
       .filter((p) => !t || p.asesor.nombre.toLowerCase().includes(t))
-      .filter((p) => !soloRiesgo || (!p.nuevo && p.tramos[idx].estado === "bajo"))
-      .sort((a, b) => a.tramos[idx].monto - b.tramos[idx].monto);
-  }, [proyecciones, q, soloRiesgo, idx]);
+      .filter((p) => (computo === "todos" ? true : computo === "nuevos" ? p.nuevo : !p.nuevo))
+      .filter((p) => !soloRiesgo || (!p.nuevo && p.tramos[idx].estado === "bajo"));
+
+    return ordenar(base, orden, (p, campo) => {
+      switch (campo) {
+        case "agente":
+          return p.asesor.nombre;
+        case "antiguedad":
+          return p.asesor.antiguedadMeses;
+        case "estado":
+          return p.nuevo ? 9 : ["bajo", "medio", "alto"].indexOf(p.tramos[idx].estado);
+        case "cae":
+          return p.mesesHastaBajo ?? 99;
+        default:
+          return p.tramos[idx].monto;
+      }
+    });
+  }, [proyecciones, q, computo, soloRiesgo, idx, orden]);
 
   const bajos = computan.filter((p) => p.tramos[idx].estado === "bajo").length;
   const nuevos = proyecciones.filter((p) => p.nuevo).length;
   const porCumplir = proyecciones.filter((p) => p.porCumplir);
+
+  const limpiar = () => {
+    setQ("");
+    setComputo("computan");
+    setSoloRiesgo(false);
+  };
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
@@ -277,37 +479,72 @@ export default function Facturacion() {
         </div>
       </div>
 
-      <Umbrales />
-
-      {/* Tramos */}
-      <div className="shrink-0 flex items-center gap-2 px-4 py-2.5 border-b border-[var(--linea)] bg-[var(--papel-alto)] overflow-x-auto sin-scroll">
-        <p className="rotulo shrink-0">Ver el acumulado</p>
-        <div className="flex items-center rounded-[var(--r-sm)] border border-[var(--linea-fuerte)] p-[2px] shrink-0">
-          {TRAMOS.map((m) => (
+      {/* Barra de trabajo */}
+      <div className="shrink-0 flex flex-wrap items-center gap-2 px-4 py-2.5 border-b border-[var(--linea)] bg-[var(--papel-alto)]">
+        <div className="flex items-center rounded-[var(--r-sm)] border border-[var(--linea-fuerte)] p-[2px]">
+          {(
+            [
+              ["lista", "Lista"],
+              ["progresion", "Progresión"],
+            ] as const
+          ).map(([k, l]) => (
             <button
-              key={m}
+              key={k}
               type="button"
-              aria-pressed={tramo === m}
-              onClick={() => setTramo(m)}
+              aria-pressed={vista === k}
+              onClick={() => setVista(k)}
               className={cn(
-                "num h-7 px-2.5 rounded-[2px] text-[12px] font-medium transition-colors whitespace-nowrap",
-                tramo === m
-                  ? "bg-[var(--sello)] text-white"
-                  : "text-[var(--tinta-suave)] hover:text-[var(--tinta)] hover:bg-[var(--papel-hundido)]",
+                "h-7 px-3 rounded-[2px] text-[12px] font-medium transition-colors",
+                vista === k
+                  ? "bg-[var(--papel-hundido)] text-[var(--tinta)]"
+                  : "text-[var(--tinta-suave)] hover:text-[var(--tinta)]",
               )}
             >
-              {m === 0 ? "hoy" : `+${m} meses`}
+              {l}
             </button>
           ))}
         </div>
-        <p className="text-[12px] text-[var(--tinta-suave)] shrink-0">
-          {tramo === 0
-            ? "Lo que cada uno lleva acumulado en los últimos 12 meses."
-            : `Dónde queda cada uno dentro de ${tramo} meses si no cierra ninguna operación nueva.`}
+
+        {vista === "lista" && (
+          <>
+            <p className="rotulo shrink-0 ml-1">Acumulado</p>
+            <div className="flex items-center rounded-[var(--r-sm)] border border-[var(--linea-fuerte)] p-[2px]">
+              {TRAMOS.map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  aria-pressed={tramo === m}
+                  onClick={() => setTramo(m)}
+                  className={cn(
+                    "num h-7 px-2.5 rounded-[2px] text-[12px] font-medium transition-colors whitespace-nowrap",
+                    tramo === m
+                      ? "bg-[var(--sello)] text-white"
+                      : "text-[var(--tinta-suave)] hover:text-[var(--tinta)] hover:bg-[var(--papel-hundido)]",
+                  )}
+                >
+                  {m === 0 ? "hoy" : `+${m} m`}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+
+        <p className="text-[12px] text-[var(--tinta-suave)] hidden xl:block">
+          {vista === "progresion"
+            ? "Cada columna es el acumulado dentro de esos meses si no cierra nada nuevo."
+            : tramo === 0
+              ? "Lo que cada uno lleva acumulado en los últimos 12 meses."
+              : `Dónde queda cada uno dentro de ${tramo} meses si no cierra ninguna operación nueva.`}
         </p>
-        <Boton chico tono="primario" ico="planilla" className="ml-auto shrink-0" onClick={() => setCargando(true)}>
-          Cargar el mes
-        </Boton>
+
+        <div className="ml-auto flex items-center gap-1.5">
+          <Boton chico ico="ajustes" onClick={() => setConfig(true)}>
+            Configuración
+          </Boton>
+          <Boton chico tono="primario" ico="planilla" onClick={() => setCargando(true)}>
+            Cargar comisiones
+          </Boton>
+        </div>
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto scroll p-4">
@@ -319,6 +556,31 @@ export default function Facturacion() {
           />
 
           <div className="flex flex-wrap items-center gap-1.5 px-3.5 py-2 border-b border-[var(--linea-suave)]">
+            <div className="flex items-center rounded-[var(--r-sm)] border border-[var(--linea-fuerte)] p-[2px]">
+              {(
+                [
+                  ["computan", "Computan"],
+                  ["nuevos", "No computan"],
+                  ["todos", "Todos"],
+                ] as const
+              ).map(([k, l]) => (
+                <button
+                  key={k}
+                  type="button"
+                  aria-pressed={computo === k}
+                  onClick={() => setComputo(k)}
+                  className={cn(
+                    "h-6 px-2.5 rounded-[2px] text-[11.5px] transition-colors",
+                    computo === k
+                      ? "font-medium bg-[var(--papel-hundido)] text-[var(--tinta)]"
+                      : "text-[var(--tinta-suave)] hover:text-[var(--tinta)]",
+                  )}
+                >
+                  {l}
+                </button>
+              ))}
+            </div>
+
             <button
               type="button"
               aria-pressed={soloRiesgo}
@@ -334,29 +596,38 @@ export default function Facturacion() {
               <span className="num font-semibold">{bajos}</span>
               en low performance
             </button>
-            <p className="text-[11.5px] text-[var(--tinta-tenue)] ml-1">
-              Ordenado de menor a mayor acumulado: arriba está el que más urge mirar.
+
+            <p className="text-[11.5px] text-[var(--tinta-tenue)] ml-1 hidden lg:block">
+              {vista === "lista"
+                ? "Tocá el nombre de una columna para ordenar por ese campo."
+                : "Cada fila es un agente y cada columna un tramo de la proyección."}
             </p>
           </div>
 
           <PistaScroll />
 
-          <div className="overflow-x-auto scroll">
-            {filas.length === 0 ? (
-              <Vacio titulo="Ningún agente coincide" ico="equipo" accion={{ txt: "Limpiar", al: () => { setQ(""); setSoloRiesgo(false); } }} />
-            ) : (
+          {filas.length === 0 ? (
+            <Vacio titulo="Ningún agente coincide" ico="equipo" accion={{ txt: "Limpiar", al: limpiar }} />
+          ) : vista === "progresion" ? (
+            <Progresion filas={filas} ahora={e.ahora} alAbrir={setDetalle} />
+          ) : (
+            <div className="overflow-x-auto scroll">
               <table className="w-full min-w-[720px] border-collapse">
                 <thead>
                   <tr>
-                    <Th>Agente</Th>
-                    <Th ancho={120}>Últimos 12 meses</Th>
-                    <Th ancho={132} alDer>
+                    <ThOrden campo="agente" orden={orden}>
+                      Agente
+                    </ThOrden>
+                    <ThFijo ancho={120}>Últimos 12 meses</ThFijo>
+                    <ThOrden campo="acumulado" orden={orden} ancho={132} alDer>
                       {tramo === 0 ? "Acumulado hoy" : `Acumulado +${tramo}m`}
-                    </Th>
-                    <Th ancho={130}>Estado</Th>
-                    <Th ancho={120} alDer>
+                    </ThOrden>
+                    <ThOrden campo="estado" orden={orden} ancho={130}>
+                      Estado
+                    </ThOrden>
+                    <ThOrden campo="cae" orden={orden} ancho={120} alDer>
                       Cae en
-                    </Th>
+                    </ThOrden>
                   </tr>
                 </thead>
                 <tbody>
@@ -429,11 +700,11 @@ export default function Facturacion() {
                   })}
                 </tbody>
               </table>
-            )}
-          </div>
+            </div>
+          )}
         </Panel>
 
-        {porCumplir.length > 0 && (
+        {porCumplir.length > 0 && computo !== "computan" && (
           <Panel className="mt-3">
             <CabezaPanel titulo="Agentes nuevos que están por empezar a computar" cuenta={porCumplir.length} />
             <ul className="divide-y divide-[var(--linea-suave)]">
@@ -456,7 +727,8 @@ export default function Facturacion() {
         )}
       </div>
 
-      {cargando && <CargarMes cerrar={() => setCargando(false)} />}
+      {cargando && <CargarComisiones cerrar={() => setCargando(false)} />}
+      {config && <Configuracion cerrar={() => setConfig(false)} />}
 
       {detalle && (
         <Modal
@@ -464,7 +736,11 @@ export default function Facturacion() {
           sub={`${detalle.asesor.antiguedadMeses} meses en la oficina · ${detalle.asesor.email}`}
           cerrar={() => setDetalle(null)}
           ancho={520}
-          pie={<Boton tono="primario" onClick={() => setDetalle(null)}>Cerrar</Boton>}
+          pie={
+            <Boton tono="primario" onClick={() => setDetalle(null)}>
+              Cerrar
+            </Boton>
+          }
         >
           <p className="rotulo mb-2">Comisión mes a mes</p>
           <ul className="grid grid-cols-2 gap-x-4">

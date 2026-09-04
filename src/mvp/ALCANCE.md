@@ -8,32 +8,47 @@ generar documentos y a ver los que registró. Todo lo demás es de gerencia.
 
 ## 1. Documentos y vencimientos
 
-- El asesor elige propiedad, elige documento y contesta preguntas. La lista de documentos
-  se filtra por jurisdicción, tipo de operación y uso, así que sobre una propiedad de CABA
-  no aparecen los papeles de provincia.
+- **No se gestiona stock de propiedades.** No hay cartera que cargar ni mantener: los datos
+  del inmueble son variables que el asesor completa al generar la reserva. Lo único que se
+  le pregunta antes es dónde está la propiedad (jurisdicción, operación, uso), para saber qué
+  documentos ofrecerle. Sobre una propiedad de CABA no aparecen los papeles de provincia.
 - Lo fijo del documento no se toca. Sólo se pregunta lo variable, y cada documento tiene su
   propio juego de preguntas (`src/mvp/plantillas.ts`).
 - Todos los documentos llevan un campo de **observaciones** de texto libre, que se imprime
   al pie.
 - Botones al terminar: imprimir o guardar PDF, enviar a recepción, enviar por correo y
   **Registrar**. Registrar es lo único que lo manda al panel de gerencia y arranca los plazos.
+- **Los plazos corren desde la fecha de vigencia que declara el asesor**, que no siempre es
+  el día en que carga el documento: si la reserva se firmó el sábado y se carga el lunes, la
+  vigencia arranca el sábado. Gerencia ve las dos fechas cuando difieren.
 - Los plazos salen de las respuestas, no están fijos por documento. La reserva de compra
   residencial de CABA tiene tres como mínimo (conformación, refuerzo, escritura) y suma un
   cuarto si la operación es con crédito hipotecario (respuesta del banco).
-- Gerencia ve todo ordenado por vencimiento. Desde el expediente puede registrar una adenda
-  (corre la fecha) o corregir la fecha a mano. Las dos cosas quedan en el historial con autor,
-  fecha y motivo, y se guarda la fecha original.
-- La adenda se cuelga de una reserva vigente de esa propiedad; no crea expediente nuevo.
+- **Una propiedad tiene una sola reserva vigente a la vez.** Dos reservas son de la misma
+  propiedad cuando coinciden dirección y unidad. Si el asesor intenta tomar otra sobre una
+  propiedad ocupada, se le avisa antes de registrar y se le explica qué hacer.
+- La **adenda** se entra siempre desde la reserva que extiende, en Mis documentos. Ahí queda
+  atada: no se puede elegir otra propiedad ni otro documento. Se puede hacer antes de que el
+  plazo venza y también después.
+- Gerencia edita la vigencia del último documento cargado del expediente (la reserva o su
+  última adenda) y elige cómo queda registrado: como adenda firmada, pidiéndole al agente por
+  correo que la genere, o como simple constancia. Siempre queda en el historial con autor,
+  motivo y la fecha original.
 
 ## 2. Facturación
 
-- Carga manual, una vez por mes, agente por agente. El criterio de qué cargar lo pone
-  gerencia: puede sumar lo reservado que sabe que se firma y descontar lo que ya se cayó.
+- Carga manual cuando gerencia quiera y sobre el mes que quiera, con dos modos: **sumar** un
+  monto a lo que ya está cargado (para ir agregando operación por operación) o **reemplazar**
+  el total. Sólo se toca lo que se completa.
+- El criterio de qué cargar lo pone gerencia: puede sumar lo reservado que sabe que se firma
+  y descontar lo que ya se cayó.
 - Ventana móvil de 12 meses. La proyección repite la cuenta a 3, 6, 9 y 12 meses suponiendo
-  que no se cierra nada nuevo, y se puede mirar cada tramo por separado.
-- Semáforo de alto rendimiento / sostiene / low performance, con umbrales editables.
-- Un agente con menos de 18 meses no computa. Los que están por cumplirlos aparecen aparte,
-  para poder mirarlos antes de que la fecha llegue.
+  que no se cierra nada nuevo. Dos vistas: **lista** (un tramo por vez, ordenable) y
+  **progresión** (una columna por tramo, con color, para ver cómo se degrada cada uno).
+- Semáforo de alto rendimiento / sostiene / low performance. Los umbrales y la antigüedad
+  mínima se editan en Configuración, no en la vista.
+- Un agente con menos de 18 meses no computa; hay filtro para verlos aparte. Los que están
+  por cumplirlos aparecen listados, para poder mirarlos antes de que la fecha llegue.
 
 ## 3. Avisos por correo
 
@@ -43,13 +58,19 @@ generar documentos y a ver los que registró. Todo lo demás es de gerencia.
 - Último contacto con cada asesor: **sólo a gerencia**, antes y después de cumplirse el tope.
   El asesor no lo recibe.
 
+## Detalles transversales
+
+- Las tablas de Vencimientos, Reservas y Facturación ordenan por cualquier columna con un
+  click en el nombre, y cada una tiene sus propios filtros.
+- La vista de gerencia que lista los documentos registrados se llama **Reservas**.
+
 ## Definiciones que faltan
 
 - El texto exacto de la reserva de compra residencial de CABA y de la adenda. Lo que está
   cargado es una redacción de trabajo para ver el flujo; hay que reemplazarla por la real.
 - La redacción de cada pregunta. El criterio acordado es que no dejen margen de interpretación.
 - Los otros documentos: son unos 40 entre CABA y PBA. Están cargados cinco como muestra.
-- De dónde salen las propiedades: carga manual del agente, importación de una base o nada
-  (el generador ya permite escribir los datos a mano si la propiedad no está cargada).
 - Si el asesor puede editar un documento ya registrado o si siempre tiene que desestimarlo y
   generar uno nuevo. Hoy no se edita: se registra uno nuevo.
+- Qué pasa cuando una reserva se cae y hay que tomar otra sobre la misma propiedad: hoy
+  gerencia tiene que darla de baja primero.

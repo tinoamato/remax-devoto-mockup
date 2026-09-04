@@ -16,6 +16,19 @@ export function cierreDe(ts: number) {
 
 export const enDias = (n: number) => cierreDe(AHORA + n * dia);
 
+/** aaaa-mm-dd, que es lo que espera un input de tipo fecha. */
+export function isoDia(ts: number) {
+  const d = new Date(ts);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/** Lee un aaaa-mm-dd como día local, sin correrse por zona horaria. */
+export function desdeIso(iso: string) {
+  const [a, m, d] = iso.split("-").map(Number);
+  if (!a || !m || !d) return NaN;
+  return new Date(a, m - 1, d, 0, 0, 0, 0).getTime();
+}
+
 export type Jurisdiccion = "CABA" | "PBA";
 export type Operacion = "Venta" | "Alquiler";
 export type Uso = "Residencial" | "Comercial";
@@ -100,7 +113,8 @@ export const asesores: Asesor[] = crudos.map(([nombre, base, semilla, ant, seq, 
 
 /* ── Propiedades ────────────────────────────────────────────── */
 
-export interface Propiedad {
+/** Sólo se usa para armar los registros de demostración. */
+interface Propiedad {
   id: string;
   direccion: string;
   unidad: string;
@@ -113,7 +127,9 @@ export interface Propiedad {
   asesorId: string;
 }
 
-export const propiedades: Propiedad[] = [
+/** Semilla nada más: no hay cartera de propiedades que gestionar.
+    Los datos del inmueble se escriben al generar cada reserva. */
+const inmueblesSemilla: Propiedad[] = [
   { id: "P-1041", direccion: "Av. Francisco Beiró 3456", unidad: "4° B", barrio: "Villa Devoto", jurisdiccion: "CABA", operacion: "Venta", uso: "Residencial", precio: 185000, propietario: "Elena Bustos", asesorId: "a1" },
   { id: "P-1042", direccion: "Yerbal 4123", unidad: "1° C", barrio: "Villa Devoto", jurisdiccion: "CABA", operacion: "Venta", uso: "Residencial", precio: 310000, propietario: "Roberto Salgado", asesorId: "a1" },
   { id: "P-1043", direccion: "Nogoyá 4590", unidad: "6° F", barrio: "Villa Devoto", jurisdiccion: "CABA", operacion: "Venta", uso: "Residencial", precio: 172000, propietario: "Marta Iriarte", asesorId: "a1" },
@@ -132,6 +148,23 @@ export const propiedades: Propiedad[] = [
 ];
 
 /* ── Documentos registrados ─────────────────────────────────── */
+
+/**
+ * Identidad del inmueble. No hay catálogo de propiedades: dos reservas hablan
+ * del mismo inmueble cuando coinciden dirección y unidad, más allá de cómo las
+ * haya tipeado cada uno. Sobre esta clave se apoya la regla de una sola reserva
+ * vigente por propiedad.
+ */
+export function claveInmueble(direccion: string, unidad: string) {
+  const limpiar = (s: string) =>
+    s
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
+  return `${limpiar(direccion)}|${limpiar(unidad)}`;
+}
 
 export type EstadoRegistro = "vigente" | "cerrado" | "caido";
 
@@ -170,12 +203,15 @@ export interface Evento {
 export interface Registro {
   id: string;
   plantillaId: string;
-  propiedadId: string | null;
   direccion: string;
   unidad: string;
+  jurisdiccion: Jurisdiccion;
   asesorId: string;
   contraparte: string;
+  /** Cuándo se armó el documento. */
   generadoEn: number;
+  /** Desde cuándo corren los plazos. No siempre es el día en que se generó. */
+  vigenciaDesde: number;
   valores: Record<string, string>;
   plazos: Plazo[];
   historial: Evento[];
@@ -284,6 +320,8 @@ interface Semilla {
   asesorId: string;
   contraparte: string;
   generadoHace: number;
+  /** La vigencia puede haber arrancado otro día que el de la generación. */
+  vigenciaHace?: number;
   conformarEn: number;
   refuerzoEn: number;
   escrituraEn: number;
@@ -296,7 +334,7 @@ interface Semilla {
 }
 
 const semillas: Semilla[] = [
-  { propiedadId: "P-1041", asesorId: "a1", contraparte: "Camila Cabrera", generadoHace: 8, conformarEn: -2, refuerzoEn: 4, escrituraEn: 52, reserva: 5000, oferta: 178000, refuerzo: 12000, pago: "Contado", obs: "El oferente viaja el jueves. Firma su hermana con poder." },
+  { propiedadId: "P-1041", asesorId: "a1", contraparte: "Camila Cabrera", generadoHace: 8, vigenciaHace: 10, conformarEn: -2, refuerzoEn: 4, escrituraEn: 52, reserva: 5000, oferta: 178000, refuerzo: 12000, pago: "Contado", obs: "El oferente viaja el jueves. Firma su hermana con poder." },
   { propiedadId: "P-1043", asesorId: "a1", contraparte: "Pedro Nogués", generadoHace: 4, conformarEn: 1, refuerzoEn: 11, escrituraEn: 58, reserva: 3000, oferta: 165000, refuerzo: 9000, pago: "Crédito hipotecario", obs: "Crédito Banco Nación en trámite. El banco tiene que informar antes del refuerzo." },
   { propiedadId: "P-1048", asesorId: "a3", contraparte: "Rodrigo Vera", generadoHace: 12, conformarEn: 0, refuerzoEn: 8, escrituraEn: 48, reserva: 4000, oferta: 210000, refuerzo: 15000, pago: "Tracto abreviado", obs: "" },
   { propiedadId: "P-1052", asesorId: "a2", contraparte: "Estudio Márquez SA", generadoHace: 21, conformarEn: -6, refuerzoEn: -1, escrituraEn: 39, reserva: 9000, oferta: 405000, refuerzo: 30000, pago: "Contado", obs: "Sucesión en trámite en el juzgado. Puede estirarse." },
@@ -308,8 +346,9 @@ const semillas: Semilla[] = [
 ];
 
 function armarRegistro(s: Semilla): Registro {
-  const p = propiedades.find((x) => x.id === s.propiedadId)!;
+  const p = inmueblesSemilla.find((x) => x.id === s.propiedadId)!;
   const gen = AHORA - s.generadoHace * dia;
+  const desde = AHORA - (s.vigenciaHace ?? s.generadoHace) * dia;
   const id = nid();
   const plazo = (pid: string, rotulo: string, enD: number, cumplido: boolean): Plazo => ({
     id: pid,
@@ -344,12 +383,13 @@ function armarRegistro(s: Semilla): Registro {
   return {
     id,
     plantillaId: p.jurisdiccion === "PBA" ? "reserva-pba" : "reserva-caba",
-    propiedadId: p.id,
     direccion: p.direccion,
     unidad: p.unidad,
+    jurisdiccion: p.jurisdiccion,
     asesorId: s.asesorId,
     contraparte: s.contraparte,
     generadoEn: gen,
+    vigenciaDesde: desde,
     estado: s.estado ?? "vigente",
     observaciones: s.obs ?? "",
     plazos,
@@ -361,6 +401,7 @@ function armarRegistro(s: Semilla): Registro {
       telefonoOferente: "11 4put-0000".replace("put", String(5000 + Math.round(Math.random() * 4000))),
       emailOferente: correo(s.contraparte).replace("remaxdevoto.com.ar", "gmail.com"),
       propietario: p.propietario,
+      vigenciaDesde: isoDia(desde),
       direccion: p.direccion,
       unidad: p.unidad,
       montoReserva: String(s.reserva),

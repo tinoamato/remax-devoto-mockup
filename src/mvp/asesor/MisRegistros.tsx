@@ -144,7 +144,7 @@ export default function MisRegistros() {
                           Ver documento
                         </Boton>
                         {r.estado === "vigente" && adenda && (
-                          <Boton chico ico="agenda" onClick={() => nav.generarCon(adenda.id)}>
+                          <Boton chico ico="agenda" onClick={() => nav.generarAdenda(adenda.id, r.id)}>
                             Extender con adenda
                           </Boton>
                         )}

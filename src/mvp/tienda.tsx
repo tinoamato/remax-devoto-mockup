@@ -11,9 +11,10 @@ import {
   EMAIL_GERENCIA,
   adendasIniciales,
   cierreDe,
+  claveInmueble,
+  desdeIso,
   asesores as asesoresSeed,
   correosIniciales,
-  propiedades,
   registrosIniciales,
   reglasIniciales,
   umbralesIniciales,
@@ -28,7 +29,7 @@ import {
   type Regla,
   type Umbrales,
 } from "./datos";
-import { plantillaPorId } from "./plantillas";
+import { CAMPO_VIGENCIA, plantillaPorId } from "./plantillas";
 
 const dia = 86_400_000;
 
@@ -69,12 +70,8 @@ const inicial: Estado = {
 export type Accion =
   | { t: "tic" }
   | { t: "yo"; asesorId: string }
-  | {
-      t: "registro.crear";
-      plantillaId: string;
-      propiedadId: string | null;
-      valores: Record<string, string>;
-    }
+  | { t: "registro.crear"; plantillaId: string; valores: Record<string, string> }
+  | { t: "notificar.adenda"; registroId: string; plazoId: string }
   | { t: "registro.estado"; registroId: string; estado: EstadoRegistro }
   | { t: "registro.nota"; registroId: string; texto: string }
   | { t: "plazo.cumplir"; registroId: string; plazoId: string }
@@ -90,6 +87,7 @@ export type Accion =
     }
   | { t: "doc.enviar"; registroId: string; destino: "recepcion" | "cliente"; direccion: string }
   | { t: "factura.set"; asesorId: string; mes: number; monto: number }
+  | { t: "factura.sumar"; asesorId: string; mes: number; monto: number }
   | { t: "umbrales.set"; cambio: Partial<Umbrales> }
   | { t: "regla.set"; id: Regla["id"]; cambio: Partial<Regla> }
   | { t: "regla.probar"; id: Regla["id"] }
@@ -139,13 +137,18 @@ function reducir(e: Estado, a: Accion): Estado {
     case "registro.crear": {
       const pl = plantillaPorId(a.plantillaId);
       if (!pl) return e;
-      const prop = propiedades.find((p) => p.id === a.propiedadId);
       const id = `RES-${String(++seqExpediente).padStart(4, "0")}`;
+
+      // Los plazos se cuentan desde la vigencia declarada, que puede ser
+      // anterior al día en que el asesor carga el documento.
+      const iso = a.valores[CAMPO_VIGENCIA] ?? "";
+      const desde = Number.isFinite(desdeIso(iso)) ? desdeIso(iso) : e.ahora;
+
       const plazos: Plazo[] = pl.plazos
         .filter((dp) => !dp.visibleSi || dp.visibleSi.valores.includes(a.valores[dp.visibleSi.campo] ?? ""))
         .map((dp) => {
           const d = Number(a.valores[dp.campoDias] ?? 0) || 0;
-          const vence = cierreDe(e.ahora + d * dia);
+          const vence = cierreDe(desde + d * dia);
           return { id: dp.id, rotulo: dp.rotulo, vence, original: vence, cumplido: false };
         })
         .sort((x, y) => x.vence - y.vence);
@@ -171,15 +174,35 @@ function reducir(e: Estado, a: Accion): Estado {
         });
       }
 
+      const direccion = (a.valores.direccion ?? "").trim() || "Sin dirección";
+      const unidad = (a.valores.unidad ?? "").trim();
+
+      // Una propiedad no puede tener dos reservas vigentes al mismo tiempo.
+      const clave = claveInmueble(direccion, unidad);
+      const ocupada = e.registros.find(
+        (r) => r.estado === "vigente" && claveInmueble(r.direccion, r.unidad) === clave,
+      );
+      if (ocupada) {
+        return {
+          ...e,
+          avisos: avisar(
+            e,
+            `${direccion} ya tiene la reserva ${ocupada.id} vigente. Cerrala o dala de baja antes de tomar otra.`,
+            "riesgo",
+          ),
+        };
+      }
+
       const reg: Registro = {
         id,
         plantillaId: pl.id,
-        propiedadId: a.propiedadId,
-        direccion: a.valores.direccion || prop?.direccion || "Sin dirección",
-        unidad: a.valores.unidad || prop?.unidad || "",
+        direccion,
+        unidad,
+        jurisdiccion: pl.jurisdiccion,
         asesorId: e.yo,
         contraparte,
         generadoEn: e.ahora,
+        vigenciaDesde: desde,
         valores: a.valores,
         plazos,
         estado: "vigente",
@@ -188,7 +211,7 @@ function reducir(e: Estado, a: Accion): Estado {
           evento(
             e.ahora,
             "generado",
-            `${pl.nombre} generado y registrado. Quedan corriendo ${plazos.length} plazos.`,
+            `${pl.nombre} generado y registrado. Vigencia desde el ${new Date(desde).toLocaleDateString("es-AR")}; quedan corriendo ${plazos.length} plazos.`,
             asesor?.nombre ?? "Asesor",
           ),
         ],
@@ -328,16 +351,57 @@ function reducir(e: Estado, a: Accion): Estado {
       };
     }
 
-    case "factura.set": {
+    case "notificar.adenda": {
+      const reg = e.registros.find((r) => r.id === a.registroId);
+      if (!reg) return e;
+      const asesor = e.asesores.find((x) => x.id === reg.asesorId)!;
+      const plazo = reg.plazos.find((p) => p.id === a.plazoId);
+      const texto = `Se le pidió a ${asesor.nombre} que genere la adenda de «${plazo?.rotulo}» para dejarla registrada.`;
+      return {
+        ...e,
+        correos: [
+          correo(
+            e,
+            "previo",
+            `Falta la adenda · ${reg.id} · ${reg.direccion}`,
+            `Hola ${asesor.nombre.split(" ")[0]}, gerencia movió el vencimiento de «${plazo?.rotulo}» de ${reg.direccion} al ${plazo ? new Date(plazo.vence).toLocaleDateString("es-AR") : ""}. Generá la adenda en el sistema para que quede registrada.`,
+            [asesor.email],
+            [EMAIL_GERENCIA],
+            reg.id,
+          ),
+          ...e.correos,
+        ],
+        registros: mapReg(e, a.registroId, (r) => ({
+          ...r,
+          historial: [...r.historial, evento(e.ahora, "aviso", texto, "Gerencia")],
+        })),
+        avisos: avisar(e, `Correo enviado a ${asesor.nombre} pidiendo la adenda.`, "ok"),
+      };
+    }
+
+    case "factura.set":
+    case "factura.sumar": {
       const as = e.asesores.find((x) => x.id === a.asesorId);
+      const suma = a.t === "factura.sumar";
       return {
         ...e,
         asesores: e.asesores.map((x) =>
           x.id === a.asesorId
-            ? { ...x, facturacion: x.facturacion.map((v, i) => (i === a.mes ? Math.max(0, a.monto) : v)) }
+            ? {
+                ...x,
+                facturacion: x.facturacion.map((v, i) =>
+                  i === a.mes ? Math.max(0, suma ? v + a.monto : a.monto) : v,
+                ),
+              }
             : x,
         ),
-        avisos: avisar(e, `Comisión de ${as?.nombre} actualizada.`, "ok"),
+        avisos: avisar(
+          e,
+          suma
+            ? `Se sumó comisión a ${as?.nombre}.`
+            : `Comisión de ${as?.nombre} actualizada.`,
+          "ok",
+        ),
       };
     }
 
@@ -567,7 +631,21 @@ export function useDerivados() {
 
     const facturacion12 = proyecciones.reduce((s, p) => s + p.hoy, 0);
 
+    /** La reserva viva de un inmueble, si es que la tiene. Sólo puede haber una. */
+    const reservaVigenteDe = (direccion: string, unidad: string) => {
+      const clave = claveInmueble(direccion, unidad);
+      return e.registros.find(
+        (r) => r.estado === "vigente" && claveInmueble(r.direccion, r.unidad) === clave,
+      );
+    };
+
+    /** Direcciones ya usadas por el asesor: sirven de sugerencia al tipear. */
+    const direccionesDe = (asesorId: string) =>
+      [...new Set(e.registros.filter((r) => r.asesorId === asesorId).map((r) => r.direccion))].sort();
+
     return {
+      reservaVigenteDe,
+      direccionesDe,
       plazosVivos,
       vencidos,
       hoy,

@@ -5,9 +5,21 @@
    respuestas salen los plazos que después vigila gerencia.
    ───────────────────────────────────────────────────────────── */
 
-import type { Jurisdiccion, Operacion, Uso } from "./datos";
+import { desdeIso, type Jurisdiccion, type Operacion, type Uso } from "./datos";
 
-export type TipoCampo = "texto" | "numero" | "moneda" | "dias" | "porcentaje" | "opcion" | "parrafo";
+export type TipoCampo =
+  | "texto"
+  | "numero"
+  | "moneda"
+  | "dias"
+  | "porcentaje"
+  | "opcion"
+  | "parrafo"
+  | "fecha";
+
+/** Campo que fija desde cuándo corren los plazos. Vive en todas las plantillas
+    que tienen vencimientos, y no siempre coincide con el día de la carga. */
+export const CAMPO_VIGENCIA = "vigenciaDesde";
 
 export interface Campo {
   id: string;
@@ -16,8 +28,6 @@ export interface Campo {
   tipo: TipoCampo;
   opciones?: string[];
   requerido?: boolean;
-  /** Se completa solo desde la propiedad elegida. */
-  auto?: "direccion" | "unidad" | "barrio" | "propietario" | "precio";
   /** Sólo aparece si otro campo tiene alguno de estos valores. */
   visibleSi?: { campo: string; valores: string[] };
   sugerido?: string;
@@ -83,9 +93,15 @@ const inmueble = (conUso = true): Seccion => ({
   id: "inmueble",
   titulo: "Sobre el inmueble",
   campos: [
-    { id: "direccion", pregunta: "Dirección del inmueble", tipo: "texto", requerido: true, auto: "direccion" },
-    { id: "unidad", pregunta: "Unidad funcional, piso o departamento", tipo: "texto", auto: "unidad" },
-    { id: "propietario", pregunta: "Nombre del propietario", tipo: "texto", requerido: true, auto: "propietario" },
+    {
+      id: "direccion",
+      pregunta: "Dirección del inmueble",
+      ayuda: "Calle y altura. Si ya generaste algo sobre esta propiedad, te la sugiere mientras escribís.",
+      tipo: "texto",
+      requerido: true,
+    },
+    { id: "unidad", pregunta: "Unidad funcional, piso o departamento", tipo: "texto" },
+    { id: "propietario", pregunta: "Nombre del propietario", tipo: "texto", requerido: true },
     ...(conUso
       ? [
           {
@@ -112,6 +128,15 @@ const observaciones: Seccion = {
       tipo: "parrafo",
     },
   ],
+};
+
+/** Los días de cada plazo se cuentan desde acá, no desde el día de la carga. */
+const campoVigencia: Campo = {
+  id: CAMPO_VIGENCIA,
+  pregunta: "¿Desde qué día corre la vigencia?",
+  ayuda: "Suele ser hoy. Si el documento se firmó otro día, poné esa fecha: todos los plazos se cuentan desde ahí.",
+  tipo: "fecha",
+  requerido: true,
 };
 
 /* ── 1. Reserva de compra — Residencial CABA ────────────────── */
@@ -188,6 +213,7 @@ const reservaCaba: Plantilla = {
       id: "plazos",
       titulo: "Los plazos",
       campos: [
+        campoVigencia,
         {
           id: "diasConformar",
           pregunta: "¿Cuántos días de vigencia tiene esta reserva para ser conformada?",
@@ -239,7 +265,7 @@ const reservaCaba: Plantilla = {
     {
       titulo: "SEGUNDA — Vigencia",
       texto:
-        "La presente oferta mantendrá su vigencia por el término de {{diasConformar}} días corridos contados desde la fecha. Vencido dicho plazo sin que la oferta haya sido conformada por el propietario, las partes quedarán automáticamente liberadas de todo compromiso, sin derecho a reclamo alguno, y se procederá a la devolución del importe entregado.",
+        "La presente oferta mantendrá su vigencia por el término de {{diasConformar}} días corridos contados desde el {{vigenciaDesde}}. Vencido dicho plazo sin que la oferta haya sido conformada por el propietario, las partes quedarán automáticamente liberadas de todo compromiso, sin derecho a reclamo alguno, y se procederá a la devolución del importe entregado.",
     },
     {
       titulo: "TERCERA — Refuerzo de seña",
@@ -255,7 +281,7 @@ const reservaCaba: Plantilla = {
     {
       titulo: "QUINTA — Escrituración",
       texto:
-        "La fecha tope para la firma del boleto de compraventa o de la escritura traslativa de dominio se fija en {{diasEscritura}} días corridos contados desde la fecha, ante el escribano que designe la parte compradora.",
+        "La fecha tope para la firma del boleto de compraventa o de la escritura traslativa de dominio se fija en {{diasEscritura}} días corridos contados desde el {{vigenciaDesde}}, ante el escribano que designe la parte compradora.",
     },
     {
       titulo: "SEXTA — Comisión",
@@ -418,7 +444,8 @@ const autorizacion: Plantilla = {
       id: "condiciones",
       titulo: "Condiciones de la autorización",
       campos: [
-        { id: "precioPublicacion", pregunta: "¿A qué precio se publica?", tipo: "moneda", requerido: true, auto: "precio" },
+        campoVigencia,
+        { id: "precioPublicacion", pregunta: "¿A qué precio se publica?", tipo: "moneda", requerido: true },
         { id: "comision", pregunta: "¿Qué comisión abona el propietario?", tipo: "porcentaje", requerido: true, sugerido: "3" },
         {
           id: "diasVigencia",
@@ -481,6 +508,7 @@ const locacionComercial: Plantilla = {
       id: "plazos",
       titulo: "Los plazos",
       campos: [
+        campoVigencia,
         { id: "diasConformar", pregunta: "¿Cuántos días de vigencia tiene esta reserva?", tipo: "dias", requerido: true, sugerido: "5" },
         { id: "diasGarantias", pregunta: "¿Dentro de cuántos días presenta las garantías?", tipo: "dias", requerido: true, sugerido: "10" },
         { id: "diasFirma", pregunta: "¿Cuál es la fecha tope para la firma del contrato?", tipo: "dias", requerido: true, sugerido: "30" },
@@ -560,6 +588,12 @@ export function fechaLarga(ts: number) {
   return new Date(ts).toLocaleDateString("es-AR", { day: "numeric", month: "long", year: "numeric" });
 }
 
+/** Un aaaa-mm-dd escrito en el documento como corresponde. */
+export function fechaDesdeIso(iso: string) {
+  const ts = desdeIso(iso);
+  return Number.isFinite(ts) ? fechaLarga(ts) : "";
+}
+
 /** Parte el texto en trozos, marcando cuáles vinieron de una respuesta. */
 export function resolver(
   texto: string,
@@ -573,7 +607,12 @@ export function resolver(
   while ((m = re.exec(texto))) {
     if (m.index > ult) out.push({ t: texto.slice(ult, m.index), variable: false });
     const clave = m[1];
-    const bruto = clave === "hoy" ? fechaLarga(ahora) : (v[clave] ?? "");
+    const bruto =
+      clave === "hoy"
+        ? fechaLarga(ahora)
+        : clave === CAMPO_VIGENCIA
+          ? fechaDesdeIso(v[clave] ?? "")
+          : (v[clave] ?? "");
     const val = CAMPOS_MONTO.has(clave) ? fmtMonto(bruto) : bruto;
     out.push({ t: val || "………………", variable: true });
     ult = m.index + m[0].length;

@@ -7,14 +7,14 @@ import { Proveedor, useApp, useDerivados } from "./tienda";
 import Generador from "./asesor/Generador";
 import MisRegistros from "./asesor/MisRegistros";
 import Vencimientos from "./gerencia/Vencimientos";
-import Expedientes from "./gerencia/Expedientes";
+import Reservas from "./gerencia/Reservas";
 import Facturacion from "./gerencia/Facturacion";
 import Automatizaciones from "./gerencia/Automatizaciones";
 import Expediente from "./gerencia/Expediente";
 
 const NAV_GERENCIA: { id: VistaGerencia; l: string; corto: string; i: NombreIcono }[] = [
   { id: "vencimientos", l: "Vencimientos", corto: "Vencim.", i: "reloj" },
-  { id: "expedientes", l: "Expedientes", corto: "Expedien.", i: "expediente" },
+  { id: "reservas", l: "Reservas", corto: "Reservas", i: "expediente" },
   { id: "facturacion", l: "Facturación", corto: "Facturac.", i: "tendencia" },
   { id: "automatizaciones", l: "Automatizaciones", corto: "Avisos", i: "rayo" },
 ];
@@ -26,7 +26,7 @@ const NAV_ASESOR: { id: VistaAsesor; l: string; corto: string; i: NombreIcono }[
 
 const TITULOS: Record<string, string> = {
   vencimientos: "Vencimientos",
-  expedientes: "Expedientes registrados",
+  reservas: "Reservas registradas",
   facturacion: "Facturación y proyección por agente",
   automatizaciones: "Avisos automáticos por correo",
   generar: "Generar un documento",
@@ -314,8 +314,8 @@ function Cuerpo() {
             {nav.modo === "gerencia" ? (
               nav.vistaGerencia === "vencimientos" ? (
                 <Vencimientos />
-              ) : nav.vistaGerencia === "expedientes" ? (
-                <Expedientes />
+              ) : nav.vistaGerencia === "reservas" ? (
+                <Reservas />
               ) : nav.vistaGerencia === "facturacion" ? (
                 <Facturacion />
               ) : (

@@ -17,7 +17,7 @@ import {
 } from "../../components/ui";
 import { Icono, type NombreIcono } from "../../lib/icons";
 import { cn, fechaHora, hace } from "../../lib/format";
-import type { Plazo, TipoEvento } from "../datos";
+import { desdeIso, type Plazo, type TipoEvento } from "../datos";
 
 const ICONO_EVENTO: Record<TipoEvento, NombreIcono> = {
   generado: "documento",
@@ -30,40 +30,63 @@ const ICONO_EVENTO: Record<TipoEvento, NombreIcono> = {
 
 /* ── Mover una fecha ────────────────────────────────────────── */
 
-function MoverPlazo({
+/** Cómo queda asentado el movimiento de fecha. */
+type Via = "adenda" | "pedir" | "constancia";
+
+const VIAS: { id: Via; titulo: string; detalle: string }[] = [
+  {
+    id: "adenda",
+    titulo: "Ya hay adenda firmada",
+    detalle: "Queda registrada como adenda del expediente, con su número.",
+  },
+  {
+    id: "pedir",
+    titulo: "Pedirle la adenda al agente",
+    detalle: "Se mueve la fecha y le sale un correo al asesor para que la genere y quede registrada.",
+  },
+  {
+    id: "constancia",
+    titulo: "Sólo dejar constancia",
+    detalle: "Corrección de gerencia, sin adenda de por medio. Va al historial con tu nombre.",
+  },
+];
+
+function EditarVigencia({
   plazo,
-  modo,
+  ultimo,
   cerrar,
   confirmar,
 }: {
   plazo: Plazo;
-  modo: "adenda" | "correccion";
+  /** El último documento cargado del expediente: la reserva o su última adenda. */
+  ultimo: string;
   cerrar: () => void;
-  confirmar: (dias: number, motivo: string) => void;
+  confirmar: (dias: number, motivo: string, via: Via) => void;
 }) {
-  const [dias, setDias] = useState(modo === "adenda" ? "30" : "7");
+  const [dias, setDias] = useState("30");
   const [motivo, setMotivo] = useState("");
+  const [via, setVia] = useState<Via>("adenda");
   const n = Number(dias) || 0;
   const nueva = new Date(plazo.vence + n * 86_400_000);
 
   return (
     <Modal
-      titulo={modo === "adenda" ? "Registrar adenda" : "Corregir la fecha"}
-      sub={plazo.rotulo}
+      titulo="Editar la vigencia"
+      sub={`${plazo.rotulo} · último documento cargado: ${ultimo}`}
       cerrar={cerrar}
+      ancho={500}
       pie={
         <>
           <Boton onClick={cerrar}>Cancelar</Boton>
-          <Boton tono="primario" onClick={() => confirmar(n, motivo.trim())} disabled={n === 0}>
-            {modo === "adenda" ? "Registrar adenda" : "Guardar la fecha"}
+          <Boton tono="primario" onClick={() => confirmar(n, motivo.trim(), via)} disabled={n === 0}>
+            {via === "adenda" ? "Registrar adenda" : via === "pedir" ? "Mover y avisar" : "Guardar la fecha"}
           </Boton>
         </>
       }
     >
       <p className="text-[12.5px] text-[var(--tinta-suave)] mb-3">
-        {modo === "adenda"
-          ? "Se firmó una adenda en papel y hay que reflejarla acá. La fecha se corre y queda asentada en el historial del expediente."
-          : "Corrección hecha desde gerencia, sin adenda de por medio. Queda registrada con tu nombre en el historial."}
+        Movés la fecha de vencimiento del último documento de este expediente. Pase lo que pase, queda
+        asentado en el historial con la fecha original.
       </p>
 
       <label className="block">
@@ -108,6 +131,35 @@ function MoverPlazo({
         </p>
       </div>
 
+      <fieldset className="mt-3">
+        <legend className="rotulo mb-1.5">¿Cómo queda registrado?</legend>
+        <div className="space-y-1.5">
+          {VIAS.map((v) => (
+            <label
+              key={v.id}
+              className={cn(
+                "flex items-start gap-2.5 px-2.5 py-2 rounded-[var(--r-sm)] border cursor-pointer transition-colors",
+                via === v.id
+                  ? "border-[var(--sello)] bg-[var(--sello-tenue)]/50"
+                  : "border-[var(--linea)] hover:bg-[var(--papel-hundido)]/60",
+              )}
+            >
+              <input
+                type="radio"
+                name="via"
+                checked={via === v.id}
+                onChange={() => setVia(v.id)}
+                className="mt-[3px] accent-[var(--sello)]"
+              />
+              <span className="min-w-0">
+                <span className="block text-[12.5px] font-medium">{v.titulo}</span>
+                <span className="block text-[11.5px] text-[var(--tinta-suave)]">{v.detalle}</span>
+              </span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+
       <label className="block mt-3">
         <span className="rotulo block mb-1">Motivo</span>
         <textarea
@@ -127,7 +179,7 @@ function MoverPlazo({
 export default function Expediente() {
   const { e, d } = useApp();
   const nav = useNav();
-  const [mover, setMover] = useState<{ plazo: Plazo; modo: "adenda" | "correccion" } | null>(null);
+  const [mover, setMover] = useState<Plazo | null>(null);
   const [verDoc, setVerDoc] = useState(false);
   const [nota, setNota] = useState("");
 
@@ -140,6 +192,8 @@ export default function Expediente() {
   const vivos = plazos.filter((p) => !p.cumplido);
   const prox = vivos[0];
   const adendas = e.adendas.filter((a) => a.registroId === r.id);
+  // La vigencia que se edita es siempre la del último papel cargado.
+  const ultimoDocumento = adendas[0]?.id ?? r.id;
   const cerrar = () => nav.abrirExpediente(null);
 
   const respuestas = pl
@@ -230,7 +284,19 @@ export default function Expediente() {
       <div className="flex-1 min-h-0 overflow-y-auto scroll">
         {/* Plazos */}
         <section className="px-4 py-3 border-b border-[var(--linea)]">
-          <h3 className="rotulo mb-2">Plazos del expediente</h3>
+          <h3 className="rotulo">Plazos del expediente</h3>
+          <p className="text-[11.5px] text-[var(--tinta-tenue)] mb-2">
+            Corren desde el{" "}
+            <span className="num text-[var(--tinta-media)]">
+              {new Date(r.vigenciaDesde).toLocaleDateString("es-AR")}
+            </span>
+            {Math.abs(r.vigenciaDesde - r.generadoEn) > 43_200_000 && (
+              <>
+                , que no es el día en que se cargó ({new Date(r.generadoEn).toLocaleDateString("es-AR")})
+              </>
+            )}
+            .
+          </p>
           <ul className="space-y-1.5">
             {plazos.map((p) => {
               const u = urgenciaDe(p.vence, e.ahora);
@@ -292,12 +358,14 @@ export default function Expediente() {
 
                   {!p.cumplido && r.estado === "vigente" && (
                     <div className="flex flex-wrap gap-1.5 mt-2 pl-[30px]">
-                      <Boton chico ico="agenda" onClick={() => setMover({ plazo: p, modo: "adenda" })}>
-                        Registrar adenda
+                      <Boton chico ico="agenda" onClick={() => setMover(p)}>
+                        Editar vigencia
                       </Boton>
-                      <Boton chico tono="fantasma" ico="reloj" onClick={() => setMover({ plazo: p, modo: "correccion" })}>
-                        Corregir fecha
-                      </Boton>
+                      {u === "vencida" && (
+                        <span className="inline-flex items-center text-[11.5px] text-[var(--lacre)]">
+                          se puede extender igual, aunque ya esté vencido
+                        </span>
+                      )}
                     </div>
                   )}
                 </li>
@@ -356,7 +424,9 @@ export default function Expediente() {
                       ? `${r.valores[c.id]}%`
                       : c.tipo === "dias"
                         ? `${r.valores[c.id]} días`
-                        : r.valores[c.id]}
+                        : c.tipo === "fecha"
+                          ? new Date(desdeIso(r.valores[c.id])).toLocaleDateString("es-AR")
+                          : r.valores[c.id]}
                 </dd>
               </div>
             ))}
@@ -414,16 +484,16 @@ export default function Expediente() {
       </div>
 
       {mover && (
-        <MoverPlazo
-          plazo={mover.plazo}
-          modo={mover.modo}
+        <EditarVigencia
+          plazo={mover}
+          ultimo={ultimoDocumento}
           cerrar={() => setMover(null)}
-          confirmar={(dias, motivo) => {
-            if (mover.modo === "adenda") {
+          confirmar={(dias, motivo, via) => {
+            if (via === "adenda") {
               d({
                 t: "adenda.registrar",
                 registroId: r.id,
-                plazoId: mover.plazo.id,
+                plazoId: mover.id,
                 dias,
                 motivo: motivo || "Adenda firmada por las partes.",
               });
@@ -431,10 +501,11 @@ export default function Expediente() {
               d({
                 t: "plazo.mover",
                 registroId: r.id,
-                plazoId: mover.plazo.id,
+                plazoId: mover.id,
                 dias,
                 motivo: motivo || "Sin motivo declarado.",
               });
+              if (via === "pedir") d({ t: "notificar.adenda", registroId: r.id, plazoId: mover.id });
             }
             setMover(null);
           }}
