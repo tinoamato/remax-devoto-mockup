@@ -12,7 +12,6 @@ import { Proveedor, useApp, useDerivados } from "./state/store";
 const NAV_GERENCIA: { id: VistaGerencia; l: string; corto: string; i: NombreIcono }[] = [
   { id: "panel", l: "Panel", corto: "Panel", i: "tablero" },
   { id: "torre", l: "Torre de control", corto: "Torre", i: "torre" },
-  { id: "alertas", l: "Alertas", corto: "Alertas", i: "campana" },
   { id: "cadencia", l: "Cadencia", corto: "Cadencia", i: "pulso" },
   { id: "facturacion", l: "Facturación", corto: "Facturac.", i: "tendencia" },
   { id: "equipo", l: "Equipo", corto: "Equipo", i: "equipo" },
