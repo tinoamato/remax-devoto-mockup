@@ -5,6 +5,7 @@ import { useNav } from "../state/nav";
 import { Icono } from "../lib/icons";
 import { cn, fechaCorta, hace, usd } from "../lib/format";
 import VistaCadencia, { ModalContacto } from "./Cadencia";
+import VistaAutomatizaciones from "./Automatizaciones";
 import VistaFacturacion, { COLOR_SEM, Trayectoria } from "./Facturacion";
 import {
   Barra,
@@ -1217,6 +1218,7 @@ export default function GerenciaPanel() {
       {nav.vistaGerencia === "cartera" && <VistaCartera />}
       {nav.vistaGerencia === "alertas" && <VistaAlertas />}
       {nav.vistaGerencia === "cadencia" && <VistaCadencia />}
+      {nav.vistaGerencia === "automatizaciones" && <VistaAutomatizaciones />}
       {nav.vistaGerencia === "facturacion" && <VistaFacturacion />}
       {/* La ficha del asesor se abre desde cualquier vista, no sólo desde Equipo. */}
       {nav.asesor && <FichaAsesor id={nav.asesor} cerrar={() => nav.abrirAsesor(null)} />}

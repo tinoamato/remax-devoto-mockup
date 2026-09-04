@@ -135,21 +135,24 @@ export interface Contacto {
   nota: string;
 }
 
-/** Regla de la oficina: qué se vigila, a quién se le avisa y cuándo. */
+/** Automatizaciones de contacto: avisos por correo directo a cada asesor. */
 export interface ReglaCadencia {
-  destinatario: string;
-  hora: string;
-  incluirPorVencer: boolean;
+  /** Días de anticipación del aviso previo. */
   margenAviso: number;
-  ultimoEnvio: number | null;
+  hora: string;
+  avisoPrevioActivo: boolean;
+  avisoVencidoActivo: boolean;
+  ultimoEnvioPrevio: number | null;
+  ultimoEnvioVencido: number | null;
 }
 
 export const reglaInicial: ReglaCadencia = {
-  destinatario: "gerencia@remaxdevoto.com.ar",
-  hora: "08:00",
-  incluirPorVencer: true,
   margenAviso: 3,
-  ultimoEnvio: null,
+  hora: "08:00",
+  avisoPrevioActivo: true,
+  avisoVencidoActivo: true,
+  ultimoEnvioPrevio: null,
+  ultimoEnvioVencido: null,
 };
 
 export interface Lead {

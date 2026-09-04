@@ -2,7 +2,15 @@ import { createContext, useContext, useMemo, useState, type ReactNode } from "re
 
 export type Modo = "asesor" | "gerencia";
 export type VistaAsesor = "dia" | "cartera" | "consultas" | "docs" | "perfil";
-export type VistaGerencia = "panel" | "torre" | "equipo" | "cartera" | "alertas" | "cadencia" | "facturacion";
+export type VistaGerencia =
+  | "panel"
+  | "torre"
+  | "equipo"
+  | "cartera"
+  | "alertas"
+  | "cadencia"
+  | "automatizaciones"
+  | "facturacion";
 
 export interface Nav {
   modo: Modo;

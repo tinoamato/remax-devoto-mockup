@@ -46,6 +46,16 @@ export function fechaHora(ts: number) {
   });
 }
 
+/** Email ficticio a partir del nombre, para la demo (no hay campo de email real). */
+export function emailDe(nombre: string) {
+  const limpio = nombre
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase()
+    .replace(/\s+/g, ".");
+  return `${limpio}@remaxdevoto.com.ar`;
+}
+
 export function iniciales(nombre: string) {
   return nombre
     .split(" ")

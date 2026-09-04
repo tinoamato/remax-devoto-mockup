@@ -97,7 +97,8 @@ export type Accion =
   | { t: "contacto.registrar"; asesorId: string; canal: CanalContacto; nota: string }
   | { t: "contacto.tope"; asesorId: string; dias: number }
   | { t: "contacto.regla"; cambio: Partial<ReglaCadencia> }
-  | { t: "contacto.enviarAviso"; vencidos: number; porVencer: number }
+  | { t: "contacto.avisarAsesor"; asesorId: string }
+  | { t: "contacto.probarAutomatizacion"; tipo: "previo" | "vencido"; alcance: number }
   | { t: "umbrales.set"; cambio: Partial<Umbrales> }
   | { t: "aviso.cerrar"; id: number }
   | { t: "aviso.deshacer"; id: number };
@@ -435,27 +436,31 @@ function reducer(s: Estado, a: Accion): Estado {
     }
 
     case "contacto.regla":
-      return conAviso({ ...s, regla: { ...s.regla, ...a.cambio } }, "Regla actualizada", "ok", s);
+      return conAviso({ ...s, regla: { ...s.regla, ...a.cambio } }, "Automatización actualizada", "ok", s);
 
-    case "contacto.enviarAviso": {
+    case "contacto.avisarAsesor": {
+      const asesor = s.asesores.find((x) => x.id === a.asesorId);
+      if (!asesor) return s;
+      return conAviso(s, `Aviso enviado a ${asesor.nombre} pidiéndole que te contacte`, "ok", s);
+    }
+
+    case "contacto.probarAutomatizacion": {
       const ahora = Date.now();
       const n: Estado = {
         ...s,
-        regla: { ...s.regla, ultimoEnvio: ahora },
-        alertas: [
-          {
-            id: nuevoId("AL"),
-            ts: ahora,
-            severidad: a.vencidos > 3 ? "alta" : "media",
-            titulo: `${a.vencidos} asesores sin contacto dentro del tope acordado`,
-            detalle: `Aviso enviado a ${s.regla.destinatario}. ${a.vencidos} pasados de tope y ${a.porVencer} por vencer en los próximos ${s.regla.margenAviso} días.`,
-            leida: false,
-            resuelta: false,
-          },
-          ...s.alertas,
-        ],
+        regla:
+          a.tipo === "previo"
+            ? { ...s.regla, ultimoEnvioPrevio: ahora }
+            : { ...s.regla, ultimoEnvioVencido: ahora },
       };
-      return conAviso(n, `Aviso enviado a ${s.regla.destinatario}`, "ok", s);
+      return conAviso(
+        n,
+        a.tipo === "previo"
+          ? `Aviso previo enviado a ${a.alcance} asesores`
+          : `Aviso de vencido enviado a ${a.alcance} asesores`,
+        "ok",
+        s,
+      );
     }
 
     case "umbrales.set":

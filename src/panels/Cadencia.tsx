@@ -1,9 +1,8 @@
 import { useMemo, useState } from "react";
 import type { CanalContacto } from "../data/mock";
-import { useApp, useDerivados, type Cadencia, type EstadoCadencia } from "../state/store";
+import { useApp, useDerivados, type EstadoCadencia } from "../state/store";
 import { useNav } from "../state/nav";
-import { Icono } from "../lib/icons";
-import { cn, fechaCorta, hace } from "../lib/format";
+import { cn, emailDe, fechaCorta } from "../lib/format";
 import {
   Barra,
   Boton,
@@ -92,141 +91,6 @@ export function ModalContacto({ asesorId, cerrar }: { asesorId: string; cerrar: 
   );
 }
 
-/* ── La regla, escrita como la lee el gerente ───────────────── */
-
-function TiraRegla() {
-  const { e, d } = useApp();
-  const r = e.regla;
-
-  const campo =
-    "num inline-flex items-center h-6 px-1.5 rounded-[var(--r-xs)] border border-[var(--sello-borde)] " +
-    "bg-[var(--sello-tenue)] text-[var(--sello)] text-[12.5px] font-semibold outline-none " +
-    "focus:border-[var(--sello)] transition-colors";
-
-  return (
-    <div className="px-4 py-3 border-b border-[var(--linea)] bg-[var(--papel-alto)] trama">
-      <div className="flex items-center gap-2 mb-2">
-        <Icono n="regla" s={14} className="text-[var(--tinta-tenue)]" />
-        <p className="rotulo">La regla que corre todos los días</p>
-      </div>
-      <p className="text-[13.5px] leading-[2] text-[var(--tinta-media)]">
-        <span className="num text-[var(--tinta)] font-semibold">SI</span> los días desde el último
-        contacto <span className="num text-[var(--tinta)] font-semibold">&gt;</span> el tope de ese
-        asesor <span className="num text-[var(--tinta)] font-semibold">→</span> avisar por correo a{" "}
-        <input
-          value={r.destinatario}
-          onChange={(ev) => d({ t: "contacto.regla", cambio: { destinatario: ev.target.value } })}
-          aria-label="Destinatario del aviso"
-          className={cn(campo, "w-[220px]")}
-        />{" "}
-        todos los días a las{" "}
-        <input
-          type="time"
-          value={r.hora}
-          onChange={(ev) => d({ t: "contacto.regla", cambio: { hora: ev.target.value } })}
-          aria-label="Hora del aviso"
-          className={cn(campo, "w-[86px]")}
-        />
-        , incluyendo también a los que vencen dentro de{" "}
-        <input
-          type="number"
-          min={0}
-          max={14}
-          value={r.margenAviso}
-          onChange={(ev) =>
-            d({ t: "contacto.regla", cambio: { margenAviso: Math.max(0, Number(ev.target.value) || 0) } })
-          }
-          aria-label="Días de margen"
-          className={cn(campo, "w-[52px]")}
-        />{" "}
-        días.
-      </p>
-    </div>
-  );
-}
-
-/* ── Vista previa del correo ────────────────────────────────── */
-
-function redactarAviso(
-  vencidos: Cadencia[],
-  porVencer: Cadencia[],
-  regla: { destinatario: string; hora: string; margenAviso: number },
-  ahora: number,
-) {
-  const fecha = new Date(ahora).toLocaleDateString("es-AR", {
-    weekday: "short",
-    day: "2-digit",
-    month: "2-digit",
-  });
-  const lineas: string[] = [];
-  lineas.push(`Para:     ${regla.destinatario}`);
-  lineas.push(`Asunto:   [RE/MAX Devoto] ${vencidos.length} asesores fuera de cadencia · ${fecha}`);
-  lineas.push("");
-  lineas.push(`PASADOS DE TOPE (${vencidos.length})`);
-  if (!vencidos.length) lineas.push("  Ninguno. Toda la oficina dentro del tope acordado.");
-  for (const c of vencidos.slice(0, 6)) {
-    lineas.push(
-      `  ${c.asesor.nombre} · ${c.asesor.rol}`,
-      `    ${c.desde} días sin contacto · tope ${c.asesor.topeDias} · ${c.atraso} de atraso`,
-      `    ${c.asesor.activas} operaciones activas`,
-    );
-  }
-  if (vencidos.length > 6) lineas.push(`  … y ${vencidos.length - 6} más.`);
-  if (regla.margenAviso > 0) {
-    lineas.push("");
-    lineas.push(`POR VENCER EN ${regla.margenAviso} DÍAS (${porVencer.length})`);
-    if (!porVencer.length) lineas.push("  Ninguno.");
-    for (const c of porVencer.slice(0, 5)) {
-      lineas.push(
-        `  ${c.asesor.nombre} · tope ${c.asesor.topeDias} · hace ${c.desde} días · vence en ${-c.atraso}`,
-      );
-    }
-    if (porVencer.length > 5) lineas.push(`  … y ${porVencer.length - 5} más.`);
-  }
-  lineas.push("");
-  lineas.push(`— Enviado automáticamente todos los días a las ${regla.hora}.`);
-  return lineas.join("\n");
-}
-
-function PanelAviso({ vencidos, porVencer }: { vencidos: Cadencia[]; porVencer: Cadencia[] }) {
-  const { e, d } = useApp();
-  const texto = redactarAviso(vencidos, porVencer, e.regla, e.ahora);
-
-  return (
-    <Panel>
-      <CabezaPanel
-        titulo="Vista previa del aviso"
-        extra={
-          <>
-            <Boton chico ico="clip" onClick={() => navigator.clipboard?.writeText(texto)}>
-              Copiar
-            </Boton>
-            <Boton
-              chico
-              tono="primario"
-              ico="enviar"
-              onClick={() =>
-                d({ t: "contacto.enviarAviso", vencidos: vencidos.length, porVencer: porVencer.length })
-              }
-            >
-              Enviar ahora
-            </Boton>
-          </>
-        }
-      />
-      <pre className="num text-[11px] leading-[1.75] text-[var(--tinta-media)] p-3.5 whitespace-pre-wrap break-words max-h-[420px] overflow-y-auto scroll">
-        {texto}
-      </pre>
-      <p className="px-3.5 py-2 border-t border-[var(--linea-suave)] text-[11.5px] text-[var(--tinta-tenue)]">
-        {e.regla.ultimoEnvio
-          ? `Último envío ${hace(e.regla.ultimoEnvio, e.ahora)}.`
-          : "Todavía no se envió hoy."}{" "}
-        El próximo sale solo a las <span className="num">{e.regla.hora}</span>.
-      </p>
-    </Panel>
-  );
-}
-
 /* ── Vista completa ─────────────────────────────────────────── */
 
 export default function VistaCadencia() {
@@ -297,8 +161,6 @@ export default function VistaCadencia() {
           </p>
         </div>
       </div>
-
-      <TiraRegla />
 
       <div className="flex-1 min-h-0 overflow-y-auto scroll p-4">
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] items-start">
@@ -376,7 +238,7 @@ export default function VistaCadencia() {
                       <Th ancho={92}>Tope</Th>
                       <Th ancho={128}>Último contacto</Th>
                       <Th ancho={110} alDer>Atraso</Th>
-                      <Th ancho={112} alDer>Acción</Th>
+                      <Th ancho={150} alDer>Acción</Th>
                     </tr>
                   </thead>
                   <tbody>
@@ -442,7 +304,10 @@ export default function VistaCadencia() {
                           </span>
                         </Td>
                         <Td alDer>
-                          <span onClick={(ev) => ev.stopPropagation()} className="inline-flex">
+                          <span
+                            onClick={(ev) => ev.stopPropagation()}
+                            className="flex flex-col items-end gap-1"
+                          >
                             <Boton
                               chico
                               tono={c.estado === "vencido" ? "primario" : "secundario"}
@@ -450,6 +315,14 @@ export default function VistaCadencia() {
                               onClick={() => setRegistrando(c.asesor.id)}
                             >
                               Contacté
+                            </Boton>
+                            <Boton
+                              chico
+                              ico="enviar"
+                              title={`Envía un correo a ${emailDe(c.asesor.nombre)}`}
+                              onClick={() => d({ t: "contacto.avisarAsesor", asesorId: c.asesor.id })}
+                            >
+                              Pedir contacto
                             </Boton>
                           </span>
                         </Td>
@@ -463,8 +336,6 @@ export default function VistaCadencia() {
 
           {/* Columna derecha */}
           <div className="space-y-4 min-w-0">
-            <PanelAviso vencidos={vencidosContacto} porVencer={porVencerContacto} />
-
             <Panel>
               <CabezaPanel titulo="Cumplimiento por tope" />
               <div className="p-3.5 space-y-2.5">
