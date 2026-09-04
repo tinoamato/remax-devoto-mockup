@@ -211,28 +211,6 @@ function VistaPanel() {
               })}
             </ul>
           </Panel>
-
-          {/* Pipeline */}
-          <Panel>
-            <CabezaPanel titulo="Pipeline por bloque" />
-            <div className="p-3.5 space-y-2">
-              {pipeline.map((b) => (
-                <div key={b.label} className="flex items-center gap-3">
-                  <span className="w-[92px] shrink-0 text-[12px] text-[var(--tinta-media)]">{b.label}</span>
-                  <span className="num w-6 shrink-0 text-[12px] font-semibold text-right">{b.n}</span>
-                  <span className="flex-1 h-4 bg-[var(--papel-hundido)] border border-[var(--linea-suave)] rounded-[2px] overflow-hidden">
-                    <span
-                      className="block h-full transition-[width] duration-[280ms] ease-out"
-                      style={{ width: `${(b.monto / maxMonto) * 100}%`, background: b.color }}
-                    />
-                  </span>
-                  <span className="num w-[104px] shrink-0 text-[12px] text-right text-[var(--tinta-media)]">
-                    {b.monto ? usd(b.monto) : "—"}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </Panel>
         </div>
 
         {/* Columna derecha */}
@@ -392,6 +370,28 @@ function VistaPanel() {
                 </span>
               </button>
             )}
+          </Panel>
+
+          {/* Pipeline */}
+          <Panel>
+            <CabezaPanel titulo="Pipeline por bloque" />
+            <div className="p-3.5 space-y-2">
+              {pipeline.map((b) => (
+                <div key={b.label} className="flex items-center gap-3">
+                  <span className="w-[92px] shrink-0 text-[12px] text-[var(--tinta-media)]">{b.label}</span>
+                  <span className="num w-6 shrink-0 text-[12px] font-semibold text-right">{b.n}</span>
+                  <span className="flex-1 h-4 bg-[var(--papel-hundido)] border border-[var(--linea-suave)] rounded-[2px] overflow-hidden">
+                    <span
+                      className="block h-full transition-[width] duration-[280ms] ease-out"
+                      style={{ width: `${(b.monto / maxMonto) * 100}%`, background: b.color }}
+                    />
+                  </span>
+                  <span className="num w-[104px] shrink-0 text-[12px] text-right text-[var(--tinta-media)]">
+                    {b.monto ? usd(b.monto) : "—"}
+                  </span>
+                </div>
+              ))}
+            </div>
           </Panel>
         </div>
       </div>
