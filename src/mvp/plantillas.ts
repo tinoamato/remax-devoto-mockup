@@ -3,6 +3,9 @@
    Cada documento es una lista de preguntas y un cuerpo fijo con
    variables. Lo fijo no se toca; lo variable se pregunta. De las
    respuestas salen los plazos que después vigila gerencia.
+
+   Hoy sólo hay dos documentos: la reserva (con el texto real de
+   la oficina) y su adenda. No hay más cargados.
    ───────────────────────────────────────────────────────────── */
 
 import { desdeIso, type Jurisdiccion, type Operacion, type Uso } from "./datos";
@@ -78,66 +81,6 @@ export interface Plantilla {
 
 /* ── Bloques reutilizados entre plantillas ──────────────────── */
 
-const oferente: Seccion = {
-  id: "oferente",
-  titulo: "Quién ofrece",
-  campos: [
-    { id: "oferente", pregunta: "Nombre y apellido del oferente", tipo: "texto", requerido: true },
-    { id: "dniOferente", pregunta: "DNI del oferente", tipo: "texto", requerido: true },
-    {
-      id: "domicilioOferente",
-      pregunta: "Domicilio que constituye para esta operación",
-      ayuda: "Es el domicilio al que se le van a mandar las comunicaciones fehacientes.",
-      tipo: "texto",
-      requerido: true,
-    },
-    { id: "telefonoOferente", pregunta: "Teléfono de contacto", tipo: "texto", requerido: true },
-    { id: "emailOferente", pregunta: "Correo electrónico", tipo: "texto", requerido: true },
-  ],
-};
-
-const inmueble = (conUso = true): Seccion => ({
-  id: "inmueble",
-  titulo: "Sobre el inmueble",
-  campos: [
-    {
-      id: "direccion",
-      pregunta: "Dirección del inmueble",
-      ayuda: "Calle y altura. Si ya generaste algo sobre esta propiedad, te la sugiere mientras escribís.",
-      tipo: "texto",
-      requerido: true,
-    },
-    { id: "unidad", pregunta: "Unidad funcional, piso o departamento", tipo: "texto" },
-    { id: "propietario", pregunta: "Nombre del propietario", tipo: "texto", requerido: true },
-    ...(conUso
-      ? [
-          { id: "localidad", pregunta: "Barrio o localidad", tipo: "texto" as const, requerido: true },
-          {
-            id: "dniPropietario",
-            pregunta: "DNI o CUIT del propietario",
-            tipo: "texto" as const,
-            requerido: true,
-          },
-          {
-            id: "emailPropietario",
-            pregunta: "Domicilio electrónico del propietario",
-            ayuda: "El correo donde el propietario acepta recibir las comunicaciones.",
-            tipo: "texto" as const,
-            requerido: true,
-          },
-          {
-            id: "estadoEntrega" as const,
-            pregunta: "¿En qué estado se entrega?",
-            tipo: "opcion" as const,
-            opciones: ["Desocupado y libre de ocupantes", "Ocupado por el propietario, se desocupa a la firma", "Con contrato de alquiler vigente"],
-            requerido: true,
-            sugerido: "Desocupado y libre de ocupantes",
-          },
-        ]
-      : []),
-  ],
-});
-
 const observaciones: Seccion = {
   id: "cierre",
   titulo: "Observaciones",
@@ -160,19 +103,83 @@ const campoVigencia: Campo = {
   requerido: true,
 };
 
-/* ── 1. Reserva de compra — Residencial CABA ────────────────── */
+/* ── 1. Oferta - Reserva de compra comercial — CABA ─────────────
+   Transcripción del papel real de la oficina («OFERTA - RESERVA
+   DE COMPRA COMERCIAL»). El texto fijo va tal cual; los puntos
+   suspensivos del Word son las variables. La comisión (5% + IVA)
+   y los cinco días hábiles del refuerzo están fijos en el papel,
+   no se preguntan. */
 
 const reservaCaba: Plantilla = {
   id: "reserva-caba",
-  nombre: "Reserva de compra — Residencial CABA",
+  nombre: "Reserva de compra comercial — CABA",
+  titulo: "OFERTA - RESERVA DE COMPRA COMERCIAL",
   jurisdiccion: "CABA",
   operacion: "Venta",
-  uso: "Residencial",
-  resumen: "El documento con el que se toma una reserva sobre una propiedad de Capital. Es el que más se usa.",
+  uso: "Comercial",
+  resumen: "El documento real de la oficina para tomar una reserva de compra sobre un inmueble comercial de Capital.",
   campoContraparte: "oferente",
+  firmas: ["FIRMA DEL OFERENTE\nACLARACIÓN · DNI", "BLANCO-VÁZQUEZ SRL\nMaría Eugenia Blanco · CUCICBA 7834"],
   secciones: [
-    inmueble(),
-    oferente,
+    {
+      id: "inmueble",
+      titulo: "Sobre el inmueble",
+      campos: [
+        {
+          id: "direccion",
+          pregunta: "Dirección del inmueble",
+          ayuda: "Calle y altura. Si ya generaste algo sobre esta propiedad, te la sugiere mientras escribís.",
+          tipo: "texto",
+          requerido: true,
+        },
+        { id: "unidad", pregunta: "Local, piso o unidad", tipo: "texto" },
+        { id: "localidad", pregunta: "Barrio o localidad", tipo: "texto", requerido: true },
+      ],
+    },
+    {
+      id: "vendedor",
+      titulo: "Quién vende",
+      campos: [
+        {
+          id: "propietario",
+          pregunta: "Nombre y apellido del propietario",
+          ayuda: "No se imprime en esta reserva, pero hace falta si más adelante se genera una adenda.",
+          tipo: "texto",
+          requerido: true,
+        },
+        { id: "dniPropietario", pregunta: "DNI o CUIT del propietario", tipo: "texto", requerido: true },
+        {
+          id: "emailPropietario",
+          pregunta: "Domicilio electrónico del propietario",
+          ayuda: "El correo donde el propietario acepta recibir comunicaciones, para cuando haga falta.",
+          tipo: "texto",
+          requerido: true,
+        },
+      ],
+    },
+    {
+      id: "oferente",
+      titulo: "Quién ofrece",
+      campos: [
+        { id: "oferente", pregunta: "Nombre y apellido del oferente", tipo: "texto", requerido: true },
+        { id: "dniOferente", pregunta: "DNI del oferente", tipo: "texto", requerido: true },
+        { id: "estadoCivilOferente", pregunta: "Estado civil del oferente", tipo: "texto", requerido: true },
+        {
+          id: "domicilioOferente",
+          pregunta: "Domicilio del oferente",
+          ayuda: "Calle, número y localidad.",
+          tipo: "texto",
+          requerido: true,
+        },
+        {
+          id: "emailOferente",
+          pregunta: "Correo electrónico",
+          ayuda: "Es el domicilio especial donde se le van a mandar las notificaciones.",
+          tipo: "texto",
+          requerido: true,
+        },
+      ],
+    },
     {
       id: "dinero",
       titulo: "La plata",
@@ -180,7 +187,7 @@ const reservaCaba: Plantilla = {
         {
           id: "montoReserva",
           pregunta: "¿Cuánto deja en concepto de reserva?",
-          ayuda: "En dólares. Es la seña que se toma en este acto.",
+          ayuda: "En dólares. Es lo que queda en custodia de Blanco-Vázquez SRL en este acto.",
           tipo: "moneda",
           requerido: true,
         },
@@ -188,16 +195,9 @@ const reservaCaba: Plantilla = {
         {
           id: "montoRefuerzo",
           pregunta: "¿Cuánto va a integrar como refuerzo de seña?",
-          ayuda: "Es el pago que hace después, una vez que salen los informes de dominio e inhibición.",
+          ayuda: "Se paga dentro de los cinco días hábiles de notificada la conformación del vendedor.",
           tipo: "moneda",
           requerido: true,
-        },
-        {
-          id: "comision",
-          pregunta: "¿Qué comisión abona el oferente?",
-          tipo: "porcentaje",
-          requerido: true,
-          sugerido: "4",
         },
       ],
     },
@@ -206,27 +206,11 @@ const reservaCaba: Plantilla = {
       titulo: "Cómo se paga",
       campos: [
         {
-          id: "formaPago",
-          pregunta: "¿Cómo se cancela el saldo de precio?",
-          tipo: "opcion",
-          opciones: ["Contado", "Crédito hipotecario", "Tracto abreviado", "Crédito hipotecario y tracto abreviado"],
+          id: "formaPagoDetalle",
+          pregunta: "¿Cómo se abona el precio total ofertado?",
+          ayuda: "Se imprime tal cual en el documento: contado, en cuotas, con crédito, etc.",
+          tipo: "parrafo",
           requerido: true,
-          sugerido: "Contado",
-        },
-        {
-          id: "banco",
-          pregunta: "¿Con qué banco tramita el crédito?",
-          tipo: "texto",
-          requerido: true,
-          visibleSi: { campo: "formaPago", valores: ["Crédito hipotecario", "Crédito hipotecario y tracto abreviado"] },
-        },
-        {
-          id: "diasBanco",
-          pregunta: "¿Cuántos días tiene el banco para informar si aprueba el crédito?",
-          tipo: "dias",
-          requerido: true,
-          sugerido: "20",
-          visibleSi: { campo: "formaPago", valores: ["Crédito hipotecario", "Crédito hipotecario y tracto abreviado"] },
         },
       ],
     },
@@ -237,23 +221,16 @@ const reservaCaba: Plantilla = {
         campoVigencia,
         {
           id: "diasConformar",
-          pregunta: "¿Cuántos días de vigencia tiene esta reserva para ser conformada?",
-          ayuda: "Días corridos. Vencido el plazo sin conformación, las partes quedan liberadas.",
+          pregunta: "¿Dentro de cuántos días hábiles tiene el vendedor para aceptar la reserva?",
+          ayuda: "Si no la acepta en ese plazo, la reserva se devuelve al oferente dentro de las 72 horas hábiles siguientes.",
           tipo: "dias",
           requerido: true,
-          sugerido: "3",
-        },
-        {
-          id: "diasRefuerzo",
-          pregunta: "¿Dentro de cuántos días se integra el refuerzo de seña?",
-          tipo: "dias",
-          requerido: true,
-          sugerido: "10",
+          sugerido: "5",
         },
         {
           id: "diasEscritura",
-          pregunta: "¿Cuál es la fecha tope para la firma del boleto o la escritura?",
-          ayuda: "Días corridos desde hoy.",
+          pregunta: "¿Cuál es el plazo para la escritura traslativa de dominio?",
+          ayuda: "Días corridos, contados desde que el vendedor conforma la reserva.",
           tipo: "dias",
           requerido: true,
           sugerido: "60",
@@ -263,87 +240,65 @@ const reservaCaba: Plantilla = {
     observaciones,
   ],
   plazos: [
-    { id: "conformar", rotulo: "Conformación de la oferta", campoDias: "diasConformar" },
-    {
-      id: "banco",
-      rotulo: "Respuesta del banco",
-      campoDias: "diasBanco",
-      visibleSi: { campo: "formaPago", valores: ["Crédito hipotecario", "Crédito hipotecario y tracto abreviado"] },
-    },
-    { id: "refuerzo", rotulo: "Refuerzo de seña", campoDias: "diasRefuerzo" },
-    { id: "escritura", rotulo: "Firma de boleto o escritura", campoDias: "diasEscritura" },
+    { id: "conformar", rotulo: "Aceptación del vendedor (vigencia de la reserva)", campoDias: "diasConformar" },
+    { id: "escritura", rotulo: "Escritura traslativa de dominio", campoDias: "diasEscritura" },
   ],
   cuerpo: [
     {
       texto:
-        "En la Ciudad Autónoma de Buenos Aires, a los {{hoy}}, {{oferente}}, DNI {{dniOferente}}, con domicilio constituido en {{domicilioOferente}}, en adelante EL OFERENTE, entrega en este acto a RE/MAX Devoto, en su carácter de intermediario, la suma de USD {{montoReserva}} en concepto de RESERVA sobre el inmueble sito en {{direccion}}, {{unidad}}, propiedad de {{propietario}}.",
+        "Recibimos del Sr/a {{oferente}}, DNI {{dniOferente}}, estado civil {{estadoCivilOferente}}, con domicilio en {{domicilioOferente}}, constituyendo dirección especial de correo electrónico a los efectos de la presente en {{emailOferente}}, donde se tendrán por eficaces y válidas todas las notificaciones cursadas, en adelante EL OFERENTE, la cantidad de Dólares Estadounidenses U$S {{montoReserva}} en concepto de Reserva de Precio y Condiciones de Pago, quedando dicho monto en custodia de Blanco-Vázquez SRL, María Eugenia Blanco CUCICBA 7834 / Andrea Vázquez CUCICBA 7860, por la compra del inmueble ubicado en la calle {{direccion}} de la {{localidad}}, en las condiciones vistas en que se encuentra, que el OFERENTE declara conocer y aceptar.",
     },
     {
-      titulo: "PRIMERA — Oferta",
       texto:
-        "La presente reserva se formula como oferta irrevocable de compra por la suma total de USD {{precioOfertado}}, sujeta a la aceptación del propietario. El saldo de precio se cancelará bajo la modalidad {{formaPago}}.",
+        "El Precio Ofertado asciende a la suma de Dólares Estadounidenses Billetes {{precioOfertadoLetras}} (U$D {{precioOfertado}}) pagaderos en esa moneda.",
     },
     {
-      titulo: "SEGUNDA — Vigencia",
-      texto:
-        "La presente oferta mantendrá su vigencia por el término de {{diasConformar}} días corridos contados desde el {{vigenciaDesde}}. Vencido dicho plazo sin que la oferta haya sido conformada por el propietario, las partes quedarán automáticamente liberadas de todo compromiso, sin derecho a reclamo alguno, y se procederá a la devolución del importe entregado.",
+      texto: "Forma de Pago y Plazos: el precio total ofertado será abonado de la siguiente manera: {{formaPagoDetalle}}.",
     },
     {
-      titulo: "TERCERA — Refuerzo de seña",
       texto:
-        "De no surgir impedimento de los informes de dominio e inhibición, EL OFERENTE integrará un refuerzo de seña de USD {{montoRefuerzo}} dentro de los {{diasRefuerzo}} días corridos de conformada la presente.",
+        "El plazo para la Escritura Traslativa de Dominio será dentro de los {{diasEscritura}} ({{diasEscrituraLetras}}) días corridos a partir de la conformidad de la presente.",
     },
     {
-      titulo: "CUARTA — Crédito hipotecario",
       texto:
-        "La operación se instrumenta con crédito hipotecario otorgado por {{banco}}. EL OFERENTE deberá acreditar la aprobación definitiva del crédito dentro de los {{diasBanco}} días corridos. De no obtenerse la aprobación en dicho plazo, cualquiera de las partes podrá dejar sin efecto la operación.",
-      visibleSi: { campo: "formaPago", valores: ["Crédito hipotecario", "Crédito hipotecario y tracto abreviado"] },
+        "Queda establecido que la presente venta se realizará en Dólares Billetes Estadounidenses que EL OFERENTE declara poseer, no aceptándose ningún otro medio o forma de pago conforme lo previsto en los arts. 765 y 766 del Código Civil y Comercial de la Nación, conforme DNU 70/2023. EL OFERENTE declara bajo juramento que a la fecha de la firma del presente posee los billetes dólares estadounidenses necesarios y la libre disponibilidad de los mismos, o el medio para conseguirlos, y en consecuencia hace expresa renuncia a la posibilidad de invocar imprevisión y/o caso fortuito o fuerza mayor establecidas en los arts. 1091 y 1730 del Código Civil y Comercial de la Nación.",
     },
     {
-      titulo: "QUINTA — Escrituración",
       texto:
-        "La fecha tope para la firma del boleto de compraventa o de la escritura traslativa de dominio se fija en {{diasEscritura}} días corridos contados desde el {{vigenciaDesde}}, ante el escribano que designe la parte compradora.",
+        "Vigencia de la Reserva: esta Oferta / Reserva de Compra se toma AD-REFERENDUM de la aprobación del VENDEDOR dentro de los {{diasConformar}} ({{diasConformarLetras}}) días hábiles contados a partir de la presente; de lo contrario se le restituirá al OFERENTE, dentro del plazo de 72 horas hábiles del vencimiento de la misma, el importe que en este acto se entrega, sin intereses, cargo o incremento alguno.",
     },
     {
-      titulo: "SEXTA — Comisión",
       texto:
-        "EL OFERENTE abonará en concepto de comisión el {{comision}}% del precio total de la operación, con más el impuesto al valor agregado, al momento de la conformación de la presente.",
+        "Aceptada por EL VENDEDOR, la presente reserva quedará firme y EL OFERENTE deberá abonar a María Eugenia Blanco CUCICBA 7834 / Andrea Vázquez CMCPSI 6257, en representación de Blanco-Vázquez SRL (sociedad legalmente constituida e inscripta en IGJ bajo el N° 1956793), al momento de firmar el boleto o la escritura traslativa de dominio y posesión, lo primero que ocurra, el valor que corresponda al cinco por ciento (5%) más IVA (21%) sobre el precio de venta total, en concepto de honorarios. EL OFERENTE declara que el pago de los honorarios lo realizará en Dólares Estadounidenses Billetes. De los importes recibidos en concepto de reserva y refuerzo se descontará la suma equivalente a los honorarios convenidos con ambas partes, y se llevará únicamente el saldo no compensado al lugar de la firma del boleto de compraventa o escritura, lo que ocurra primero.",
     },
     {
-      titulo: "SÉPTIMA — Estado del inmueble",
       texto:
-        "El inmueble se transfiere {{estadoEntrega}}, libre de deudas por impuestos, tasas y contribuciones, y libre de gravámenes, todo ello a la fecha de la escrituración.",
+        "Una vez conformada la presente reserva por EL VENDEDOR y verificado que no surgen impedimentos de los informes de dominio e inhibición expedidos por el Registro de la Propiedad correspondiente, la presente quedará firme y de cumplimiento obligatorio, debiendo EL OFERENTE, dentro de los cinco (5) días hábiles de notificada dicha conformación, realizar un refuerzo de reserva por un importe de Dólares Estadounidenses Billetes {{montoRefuerzoLetras}} (U$S {{montoRefuerzo}}), quedando dicho monto en custodia de Blanco-Vázquez SRL, consolidando así la operación en curso. Es obligación del VENDEDOR entregar inmediatamente la documentación completa al escribano designado, dentro de los cinco (5) días hábiles. El VENDEDOR fijará el lugar donde se llevará a cabo la Escritura Traslativa de Dominio.",
     },
     {
-      titulo: "OCTAVA — Domicilios",
       texto:
-        "Para todos los efectos derivados del presente, las partes constituyen domicilio en los indicados, donde se tendrán por válidas todas las comunicaciones que se cursen.",
+        "El plazo establecido tendrá carácter firme y resolutorio, con caducidad. Si EL OFERENTE no se presentare a la firma en la fecha fijada, faculta a que se lo tenga por arrepentido, con pérdida de los importes entregados en concepto de reserva y refuerzo, sin necesidad de notificación alguna; en ese caso el presente recibo quedará sin valor legal y EL OFERENTE no tendrá derecho a reclamar suma alguna, entregándose lo percibido al VENDEDOR. Si en cambio el VENDEDOR, habiendo conformado la presente, no se presentase a la firma en el plazo establecido, quedará obligado a reintegrar al OFERENTE, dentro de los tres días posteriores a la fecha prevista para firmar, las sumas recibidas incluyendo el refuerzo, más otro monto igual en concepto de única y total indemnización.",
+    },
+    {
+      texto:
+        "Los gastos de escrituración serán soportados por ambas partes según usos y costumbres. En caso de que la presente operación estuviere gravada por impuesto de sellos, el importe será abonado en partes iguales por EL OFERENTE y EL VENDEDOR.",
+    },
+    {
+      texto:
+        "En caso de mediar incumplimiento de alguna de las partes una vez conformada la reserva, la parte incumplidora estará obligada a abonar a Blanco-Vázquez SRL, María Eugenia Blanco CUCICBA 7834 / Andrea Vázquez CMCPSI 6257, el importe correspondiente a los honorarios pactados de ambas partes, en concepto de indemnización por los honorarios que por su culpa se han dejado de percibir, sin necesidad de formalidad judicial alguna.",
+    },
+    {
+      texto:
+        "La Escritura Traslativa de Dominio y Posesión se otorgará en base a títulos perfectos, libre de gravámenes, restricciones e interdicciones y con todos los impuestos, tasas y contribuciones que afecten al inmueble pagos hasta la entrega de la posesión, que se efectivizará simultáneamente con el otorgamiento de la escritura, totalmente libre de ocupantes y sin oposición de terceros.",
+    },
+    {
+      texto:
+        "En caso de utilización de la firma electrónica con identificación biométrica provista por la herramienta “Contractia”, las partes aceptan sus términos y condiciones renunciando a desconocer su firma electrónica en el futuro.",
     },
   ],
 };
 
-/* ── 2. Reserva de compra — Residencial PBA ─────────────────── */
-
-const reservaPba: Plantilla = {
-  ...reservaCaba,
-  id: "reserva-pba",
-  nombre: "Reserva de compra — Residencial PBA",
-  jurisdiccion: "PBA",
-  resumen: "La misma reserva, con las cláusulas propias de Provincia de Buenos Aires.",
-  cuerpo: reservaCaba.cuerpo.map((c, i) =>
-    i === 0
-      ? {
-          ...c,
-          texto: c.texto.replace(
-            "En la Ciudad Autónoma de Buenos Aires",
-            "En la Provincia de Buenos Aires",
-          ),
-        }
-      : c,
-  ),
-};
-
-/* ── 3. Adenda de reserva ───────────────────────────────────── */
+/* ── 2. Adenda de reserva ───────────────────────────────────── */
 
 /**
  * Transcripción del documento real de la oficina
@@ -360,7 +315,7 @@ const adenda: Plantilla = {
   titulo: "ADENDA A LA RESERVA DE COMPRA CABA",
   jurisdiccion: "CABA",
   operacion: "Venta",
-  uso: "Residencial",
+  uso: "Comercial",
   resumen: "Prorroga una reserva ya registrada. Los datos de las partes y del inmueble los trae de ella.",
   campoContraparte: "oferente",
   esAdenda: true,
@@ -451,138 +406,7 @@ const adenda: Plantilla = {
   ],
 };
 
-/* ── 4. Autorización de venta exclusiva ─────────────────────── */
-
-const autorizacion: Plantilla = {
-  id: "autorizacion-caba",
-  nombre: "Autorización de venta exclusiva — CABA",
-  jurisdiccion: "CABA",
-  operacion: "Venta",
-  uso: "Residencial",
-  resumen: "La firma el propietario para que la oficina comercialice la propiedad en exclusiva.",
-  campoContraparte: "propietario",
-  secciones: [
-    inmueble(false),
-    {
-      id: "propietarioDatos",
-      titulo: "Datos del propietario",
-      campos: [
-        { id: "dniPropietario", pregunta: "DNI o CUIT del propietario", tipo: "texto", requerido: true },
-        { id: "domicilioPropietario", pregunta: "Domicilio del propietario", tipo: "texto", requerido: true },
-        { id: "telefonoPropietario", pregunta: "Teléfono de contacto", tipo: "texto", requerido: true },
-      ],
-    },
-    {
-      id: "condiciones",
-      titulo: "Condiciones de la autorización",
-      campos: [
-        campoVigencia,
-        { id: "precioPublicacion", pregunta: "¿A qué precio se publica?", tipo: "moneda", requerido: true },
-        { id: "comision", pregunta: "¿Qué comisión abona el propietario?", tipo: "porcentaje", requerido: true, sugerido: "3" },
-        {
-          id: "diasVigencia",
-          pregunta: "¿Cuántos días dura la exclusividad?",
-          tipo: "dias",
-          requerido: true,
-          sugerido: "180",
-        },
-      ],
-    },
-    observaciones,
-  ],
-  plazos: [{ id: "exclusividad", rotulo: "Vencimiento de la exclusividad", campoDias: "diasVigencia" }],
-  cuerpo: [
-    {
-      texto:
-        "En la Ciudad Autónoma de Buenos Aires, a los {{hoy}}, {{propietario}}, DNI/CUIT {{dniPropietario}}, con domicilio en {{domicilioPropietario}}, autoriza a RE/MAX Devoto a comercializar en forma EXCLUSIVA el inmueble sito en {{direccion}}, {{unidad}}.",
-    },
-    {
-      titulo: "PRIMERA — Precio",
-      texto: "El inmueble se ofrecerá al público por la suma de USD {{precioPublicacion}}.",
-    },
-    {
-      titulo: "SEGUNDA — Plazo",
-      texto:
-        "La presente autorización se otorga por el término de {{diasVigencia}} días corridos, renovable de común acuerdo entre las partes.",
-    },
-    {
-      titulo: "TERCERA — Honorarios",
-      texto:
-        "El propietario abonará en concepto de honorarios el {{comision}}% del precio efectivo de venta, con más el impuesto al valor agregado.",
-    },
-  ],
-};
-
-/* ── 5. Reserva de locación comercial ───────────────────────── */
-
-const locacionComercial: Plantilla = {
-  id: "locacion-comercial-caba",
-  nombre: "Reserva de locación comercial — CABA",
-  jurisdiccion: "CABA",
-  operacion: "Alquiler",
-  uso: "Comercial",
-  resumen: "Reserva sobre un local o inmueble con destino comercial en Capital.",
-  campoContraparte: "oferente",
-  secciones: [
-    inmueble(false),
-    { ...oferente, titulo: "Quién alquila" },
-    {
-      id: "dinero",
-      titulo: "La plata",
-      campos: [
-        { id: "montoReserva", pregunta: "¿Cuánto deja en concepto de reserva?", tipo: "moneda", requerido: true },
-        { id: "canonMensual", pregunta: "¿Cuál es el canon locativo mensual ofrecido?", tipo: "moneda", requerido: true },
-        { id: "meses", pregunta: "¿Cuántos meses dura el contrato?", tipo: "numero", requerido: true, sugerido: "36" },
-        { id: "destino", pregunta: "¿Qué destino comercial va a tener?", tipo: "texto", requerido: true },
-      ],
-    },
-    {
-      id: "plazos",
-      titulo: "Los plazos",
-      campos: [
-        campoVigencia,
-        { id: "diasConformar", pregunta: "¿Cuántos días de vigencia tiene esta reserva?", tipo: "dias", requerido: true, sugerido: "5" },
-        { id: "diasGarantias", pregunta: "¿Dentro de cuántos días presenta las garantías?", tipo: "dias", requerido: true, sugerido: "10" },
-        { id: "diasFirma", pregunta: "¿Cuál es la fecha tope para la firma del contrato?", tipo: "dias", requerido: true, sugerido: "30" },
-      ],
-    },
-    observaciones,
-  ],
-  plazos: [
-    { id: "conformar", rotulo: "Conformación de la oferta", campoDias: "diasConformar" },
-    { id: "garantias", rotulo: "Presentación de garantías", campoDias: "diasGarantias" },
-    { id: "firma", rotulo: "Firma del contrato", campoDias: "diasFirma" },
-  ],
-  cuerpo: [
-    {
-      texto:
-        "En la Ciudad Autónoma de Buenos Aires, a los {{hoy}}, {{oferente}}, DNI {{dniOferente}}, con domicilio constituido en {{domicilioOferente}}, entrega la suma de USD {{montoReserva}} en concepto de reserva del inmueble sito en {{direccion}}, {{unidad}}, con destino {{destino}}.",
-    },
-    {
-      titulo: "PRIMERA — Oferta",
-      texto:
-        "Se ofrece un canon locativo mensual de USD {{canonMensual}} por un plazo contractual de {{meses}} meses, sujeto a la aceptación del propietario {{propietario}}.",
-    },
-    {
-      titulo: "SEGUNDA — Vigencia",
-      texto:
-        "La presente reserva tendrá vigencia de {{diasConformar}} días corridos. Vencido el plazo sin conformación, las partes quedarán liberadas.",
-    },
-    {
-      titulo: "TERCERA — Garantías",
-      texto:
-        "El locatario deberá presentar las garantías requeridas dentro de los {{diasGarantias}} días corridos, y suscribir el contrato de locación dentro de los {{diasFirma}} días corridos.",
-    },
-  ],
-};
-
-export const plantillas: Plantilla[] = [
-  reservaCaba,
-  reservaPba,
-  adenda,
-  autorizacion,
-  locacionComercial,
-];
+export const plantillas: Plantilla[] = [reservaCaba, adenda];
 
 export const plantillaPorId = (id: string) => plantillas.find((p) => p.id === id);
 
@@ -607,14 +431,7 @@ const fmtMonto = (s: string) => {
   return Number.isFinite(n) && s.trim() !== "" ? n.toLocaleString("es-AR") : s;
 };
 
-const CAMPOS_MONTO = new Set([
-  "montoReserva",
-  "precioOfertado",
-  "montoRefuerzo",
-  "nuevoPrecio",
-  "precioPublicacion",
-  "canonMensual",
-]);
+const CAMPOS_MONTO = new Set(["montoReserva", "precioOfertado", "montoRefuerzo", "nuevoPrecio"]);
 
 /** Los campos de tipo fecha de todas las plantillas, para saber cómo imprimirlos. */
 let camposFecha: Set<string> | null = null;
@@ -650,7 +467,10 @@ export function fechaDesdeIso(iso: string) {
 function valorDe(clave: string, v: Record<string, string>, ahora: number): string {
   if (clave === "hoy") return fechaLarga(ahora);
 
-  if (clave.endsWith("Letras")) return enLetras(v[clave.slice(0, -6)] ?? "");
+  if (clave.endsWith("Letras")) {
+    const bruto = v[clave.slice(0, -6)] ?? "";
+    return bruto.trim() ? enLetras(bruto) : "";
+  }
 
   for (const [sufijo, parte] of [
     ["Dia", "dia"],

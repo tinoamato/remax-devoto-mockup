@@ -22,8 +22,15 @@ generar documentos y a ver los que registró. Todo lo demás es de gerencia.
   el día en que carga el documento: si la reserva se firmó el sábado y se carga el lunes, la
   vigencia arranca el sábado. Gerencia ve las dos fechas cuando difieren.
 - Los plazos salen de las respuestas, no están fijos por documento. La reserva de compra
-  residencial de CABA tiene tres como mínimo (conformación, refuerzo, escritura) y suma un
-  cuarto si la operación es con crédito hipotecario (respuesta del banco).
+  comercial de CABA vigila dos: la aceptación del vendedor (vigencia de la reserva) y la
+  escritura. El refuerzo de seña tiene monto pero no vencimiento propio: el papel lo fija en
+  cinco días hábiles de notificada la conformación, un hecho que todavía no tiene fecha cierta
+  cuando se genera la reserva.
+- Los plazos vigentes de un expediente son siempre los de la reserva, salvo que tenga una
+  adenda: ahí manda la adenda. Una adenda nunca puede acortar un plazo — si la cuenta da una
+  fecha anterior a la que ya estaba cargada, se conserva la que vence después. Todo movimiento
+  de fecha queda en el historial, se haga por reserva, por adenda o por una corrección de
+  gerencia; no se borra nada.
 - **Una propiedad tiene una sola reserva vigente a la vez.** Dos reservas son de la misma
   propiedad cuando coinciden dirección y unidad. Si el asesor intenta tomar otra sobre una
   propiedad ocupada, se le avisa antes de registrar y se le explica qué hacer.
@@ -71,15 +78,22 @@ generar documentos y a ver los que registró. Todo lo demás es de gerencia.
   click en el nombre, y cada una tiene sus propios filtros.
 - La vista de gerencia que lista los documentos registrados se llama **Reservas**.
 
+## Documentos cargados hoy
+
+Sólo hay dos: la **reserva de compra comercial de CABA** (texto real de la oficina, «OFERTA -
+RESERVA DE COMPRA COMERCIAL») y su **adenda**. No hay más — ni otra reserva, ni autorización de
+venta, ni locación. Si se elige PBA en el primer paso del generador, se avisa que todavía no
+hay escritos cargados para esa jurisdicción; no se ofrece ningún documento de trabajo en su
+lugar.
+
 ## Definiciones que faltan
 
-- El texto exacto de la reserva de compra residencial de CABA. Lo que está cargado es una
-  redacción de trabajo; la adenda ya está con el texto real y la reserva falta.
+- El texto de la reserva de PBA y el de cualquier otro documento (autorización de venta,
+  locación, etc.). Hasta que no esté cargado el real, esa combinación no se ofrece.
 - El papel de la adenda sólo habla de prorrogar «la Oferta/Reserva». El sistema deja elegir
   cuál de los plazos se prorroga y de ahí saca los números; confirmar si eso está bien o si
   la adenda siempre debe referirse al plazo de conformación.
 - La redacción de cada pregunta. El criterio acordado es que no dejen margen de interpretación.
-- Los otros documentos: son unos 40 entre CABA y PBA. Están cargados cinco como muestra.
 - Si el asesor puede editar un documento ya registrado o si siempre tiene que desestimarlo y
   generar uno nuevo. Hoy no se edita: se registra uno nuevo.
 - Qué pasa cuando una reserva se cae y hay que tomar otra sobre la misma propiedad: hoy

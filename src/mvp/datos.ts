@@ -382,7 +382,9 @@ function armarRegistro(s: Semilla): Registro {
 
   return {
     id,
-    plantillaId: p.jurisdiccion === "PBA" ? "reserva-pba" : "reserva-caba",
+    // Hoy sólo hay una reserva real (CABA); las semillas de PBA la usan igual,
+    // es sólo texto de demo.
+    plantillaId: "reserva-caba",
     direccion: p.direccion,
     unidad: p.unidad,
     jurisdiccion: p.jurisdiccion,
@@ -397,8 +399,8 @@ function armarRegistro(s: Semilla): Registro {
     valores: {
       oferente: s.contraparte,
       dniOferente: String(20000000 + Math.round(Math.random() * 19000000)),
+      estadoCivilOferente: "Soltero/a",
       domicilioOferente: "Av. Beiró 2200, CABA",
-      telefonoOferente: "11 4put-0000".replace("put", String(5000 + Math.round(Math.random() * 4000))),
       emailOferente: correo(s.contraparte).replace("remaxdevoto.com.ar", "gmail.com"),
       propietario: p.propietario,
       dniPropietario: String(11000000 + Math.round(Math.random() * 20000000)),
@@ -410,13 +412,12 @@ function armarRegistro(s: Semilla): Registro {
       montoReserva: String(s.reserva),
       precioOfertado: String(s.oferta),
       montoRefuerzo: String(s.refuerzo),
-      comision: "4",
-      formaPago: s.pago,
+      formaPagoDetalle:
+        s.pago.startsWith("Crédito")
+          ? `${s.pago}, sujeto a la aprobación del banco.`
+          : `${s.pago}, al momento de la escritura.`,
       diasConformar: String(Math.max(1, s.conformarEn + s.generadoHace)),
-      diasRefuerzo: String(Math.max(1, s.refuerzoEn + s.generadoHace)),
       diasEscritura: String(Math.max(1, s.escrituraEn + s.generadoHace)),
-      diasBanco: s.pago.startsWith("Crédito") ? "20" : "",
-      banco: s.pago.startsWith("Crédito") ? "Banco Nación" : "",
       observaciones: s.obs ?? "",
     },
   };

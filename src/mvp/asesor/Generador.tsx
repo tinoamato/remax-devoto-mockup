@@ -253,7 +253,7 @@ export default function Generador() {
 
   const [jur, setJur] = useState<Jurisdiccion>("CABA");
   const [op, setOp] = useState<Operacion>("Venta");
-  const [uso, setUso] = useState<Uso>("Residencial");
+  const [uso, setUso] = useState<Uso>("Comercial");
   const [contextoListo, setContextoListo] = useState(false);
   const [plantillaId, setPlantillaId] = useState<string | null>(null);
   const [valores, setValores] = useState<Record<string, string>>({});
@@ -514,7 +514,20 @@ export default function Generador() {
                   : undefined
               }
             >
-              {plantilla === null && (
+              {plantilla === null && jur === "PBA" && (
+                <div className="rounded-[var(--r-sm)] border border-[var(--ambar-borde)] bg-[var(--ambar-tenue)]/60 px-3 py-2.5">
+                  <p className="flex items-start gap-1.5 text-[12.5px] text-[var(--ambar)] font-medium">
+                    <Icono n="alerta" s={14} className="mt-[2px] shrink-0" />
+                    Todavía no hay escritos cargados para PBA
+                  </p>
+                  <p className="text-[12px] text-[var(--tinta-media)] mt-1">
+                    Por ahora sólo está armada la documentación real de CABA. Para Provincia, seguí
+                    generando la reserva en papel hasta que se cargue el texto correspondiente.
+                  </p>
+                </div>
+              )}
+
+              {plantilla === null && jur !== "PBA" && (
                 <>
                   <p className="flex items-start gap-1.5 text-[12px] text-[var(--tinta-suave)] mb-2.5">
                     <Icono n="filtro" s={13} className="mt-[3px] shrink-0" />

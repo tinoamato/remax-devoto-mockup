@@ -69,7 +69,9 @@ function EditarVigencia({
   const n = Number(dias) || 0;
   // La adenda es una prórroga y corre desde su firma; lo demás corrige el vencimiento.
   const base = via === "adenda" ? Date.now() : plazo.vence;
-  const nueva = new Date(base + n * 86_400_000);
+  // Una adenda nunca acorta el plazo: si la cuenta da antes de lo que ya había, gana lo que ya había.
+  const nueva = new Date(Math.max(base + n * 86_400_000, plazo.vence));
+  const seAcorta = via === "adenda" && base + n * 86_400_000 < plazo.vence;
 
   return (
     <Modal
@@ -136,6 +138,12 @@ function EditarVigencia({
             ? "La prórroga se cuenta desde la firma de la adenda, que es hoy."
             : "La corrección se cuenta desde el vencimiento que hay cargado."}
         </p>
+        {seAcorta && (
+          <p className="text-[11.5px] text-[var(--ambar)] mt-1">
+            Esos días, contados desde hoy, dan una fecha anterior a la que ya está cargada. Una adenda
+            no acorta el plazo, así que se mantiene el vencimiento actual.
+          </p>
+        )}
       </div>
 
       <fieldset className="mt-3">

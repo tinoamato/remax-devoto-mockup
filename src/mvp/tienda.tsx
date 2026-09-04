@@ -314,8 +314,11 @@ function reducir(e: Estado, a: Accion): Estado {
         autor: a.autor ?? "Gerencia",
       };
       // La prórroga del papel corre desde la firma de la adenda; cuando gerencia
-      // sólo corrige una fecha, se cuenta desde el vencimiento que había.
-      const nuevo = a.desde !== undefined ? cierreDe(a.desde + a.dias * dia) : cierreDe(p.vence + a.dias * dia);
+      // sólo corrige una fecha, se cuenta desde el vencimiento que había. Nunca
+      // se acorta un plazo por una adenda: si el cálculo da antes de lo que ya
+      // estaba, se mantiene el vencimiento vigente (siempre gana el que vence después).
+      const propuesto = a.desde !== undefined ? cierreDe(a.desde + a.dias * dia) : cierreDe(p.vence + a.dias * dia);
+      const nuevo = Math.max(propuesto, p.vence);
       return {
         ...e,
         adendas: [ad, ...e.adendas],
