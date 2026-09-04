@@ -1,5 +1,9 @@
 {
+  "title": "RE/MAX Devoto · Expediente",
   "description": "Gestión integral de operaciones inmobiliarias para asesores y gerentes con seguimiento de plazos, documentos y comisiones en un panel claro y eficiente.",
+  "icons": {
+    "icon": "/favicon.svg"
+  },
   "robots": {
     "index": false
   },
