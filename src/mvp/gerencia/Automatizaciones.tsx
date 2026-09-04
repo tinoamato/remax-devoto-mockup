@@ -53,11 +53,11 @@ function TarjetaRegla({ r }: { r: Regla }) {
   const ejemplo: Record<Regla["id"], { asunto: string; cuerpo: string }> = {
     previo: {
       asunto: `Vence en ${r.diasAntes} días · ${reg?.id ?? "RES-0000"} · ${reg?.direccion ?? ""}`,
-      cuerpo: `Hola ${asesor.nombre.split(" ")[0]}, en ${r.diasAntes} días vence el plazo «${plazo?.rotulo ?? "conformación de la oferta"}» de ${reg?.direccion ?? "la propiedad"}. Si ya se firmó una adenda y todavía no la cargaste, es el momento.`,
+      cuerpo: `Hola ${asesor.nombre.split(" ")[0]}, en ${r.diasAntes} días vence el plazo «${plazo?.rotulo ?? "aceptación del vendedor"}» de ${reg?.direccion ?? "la propiedad"}. Si ya se firmó una adenda y todavía no la cargaste, es el momento.`,
     },
     vencido: {
       asunto: `Plazo vencido · ${reg?.id ?? "RES-0000"} · ${reg?.direccion ?? ""}`,
-      cuerpo: `El plazo «${plazo?.rotulo ?? "refuerzo de seña"}» venció hoy sin registrarse ninguna adenda. A partir de este momento las partes podrían quedar liberadas.`,
+      cuerpo: `El plazo «${plazo?.rotulo ?? "escritura traslativa de dominio"}» venció hoy sin registrarse ninguna adenda. A partir de este momento las partes podrían quedar liberadas.`,
     },
     resumen: {
       asunto: "Resumen semanal de vencimientos",

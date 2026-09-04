@@ -116,26 +116,38 @@ export default function MisRegistros() {
 
                       {vivos.length > 0 && (
                         <ul className="mt-2.5 grid gap-1 sm:grid-cols-2">
-                          {vivos.map((p) => (
-                            <li
-                              key={p.id}
-                              className="flex items-baseline gap-2 text-[12px] px-2 py-1 rounded-[var(--r-xs)] bg-[var(--papel-hundido)]/60"
-                            >
-                              <span className="flex-1 min-w-0 truncate text-[var(--tinta-media)]">
-                                {p.rotulo}
-                              </span>
-                              {p.movidoPor && (
-                                <Icono
-                                  n="historial"
-                                  s={11}
-                                  className="text-[var(--tinta-tenue)]"
-                                />
-                              )}
-                              <span className="num text-[11.5px] font-semibold">
-                                {fechaDia(p.vence)}
-                              </span>
-                            </li>
-                          ))}
+                          {vivos.map((p) => {
+                            // movidoPor guarda el número de adenda (AD-...) cuando hay una registrada;
+                            // si gerencia sólo corrigió la fecha a mano, todavía no hay papel de por medio.
+                            const sinDocumentar = Boolean(p.movidoPor) && !p.movidoPor?.startsWith("AD-");
+                            return (
+                              <li
+                                key={p.id}
+                                className="flex items-baseline gap-2 text-[12px] px-2 py-1 rounded-[var(--r-xs)] bg-[var(--papel-hundido)]/60"
+                              >
+                                <span className="flex-1 min-w-0 truncate text-[var(--tinta-media)]">
+                                  {p.rotulo}
+                                </span>
+                                {sinDocumentar && (
+                                  <Icono
+                                    n="alerta"
+                                    s={11}
+                                    className="text-[var(--ambar)]"
+                                  />
+                                )}
+                                {p.movidoPor && !sinDocumentar && (
+                                  <Icono
+                                    n="historial"
+                                    s={11}
+                                    className="text-[var(--tinta-tenue)]"
+                                  />
+                                )}
+                                <span className="num text-[11.5px] font-semibold">
+                                  {fechaDia(p.vence)}
+                                </span>
+                              </li>
+                            );
+                          })}
                         </ul>
                       )}
 

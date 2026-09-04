@@ -323,7 +323,6 @@ interface Semilla {
   /** La vigencia puede haber arrancado otro día que el de la generación. */
   vigenciaHace?: number;
   conformarEn: number;
-  refuerzoEn: number;
   escrituraEn: number;
   reserva: number;
   oferta: number;
@@ -334,15 +333,15 @@ interface Semilla {
 }
 
 const semillas: Semilla[] = [
-  { propiedadId: "P-1041", asesorId: "a1", contraparte: "Camila Cabrera", generadoHace: 8, vigenciaHace: 10, conformarEn: -2, refuerzoEn: 4, escrituraEn: 52, reserva: 5000, oferta: 178000, refuerzo: 12000, pago: "Contado", obs: "El oferente viaja el jueves. Firma su hermana con poder." },
-  { propiedadId: "P-1043", asesorId: "a1", contraparte: "Pedro Nogués", generadoHace: 4, conformarEn: 1, refuerzoEn: 11, escrituraEn: 58, reserva: 3000, oferta: 165000, refuerzo: 9000, pago: "Crédito hipotecario", obs: "Crédito Banco Nación en trámite. El banco tiene que informar antes del refuerzo." },
-  { propiedadId: "P-1048", asesorId: "a3", contraparte: "Rodrigo Vera", generadoHace: 12, conformarEn: 0, refuerzoEn: 8, escrituraEn: 48, reserva: 4000, oferta: 210000, refuerzo: 15000, pago: "Tracto abreviado", obs: "" },
-  { propiedadId: "P-1052", asesorId: "a2", contraparte: "Estudio Márquez SA", generadoHace: 21, conformarEn: -6, refuerzoEn: -1, escrituraEn: 39, reserva: 9000, oferta: 405000, refuerzo: 30000, pago: "Contado", obs: "Sucesión en trámite en el juzgado. Puede estirarse." },
-  { propiedadId: "P-1050", asesorId: "a4", contraparte: "Mariela Ponce", generadoHace: 3, conformarEn: 2, refuerzoEn: 16, escrituraEn: 61, reserva: 2500, oferta: 126000, refuerzo: 8000, pago: "Crédito hipotecario", obs: "" },
-  { propiedadId: "P-1054", asesorId: "a12", contraparte: "Gustavo Iriondo", generadoHace: 30, conformarEn: -14, refuerzoEn: -7, escrituraEn: 26, reserva: 4500, oferta: 188000, refuerzo: 14000, pago: "Contado", obs: "Ya se hizo una adenda por 30 días. Se podría estar por caer otra vez." },
-  { propiedadId: "P-1055", asesorId: "a15", contraparte: "Norma Salcedo", generadoHace: 1, conformarEn: 6, refuerzoEn: 20, escrituraEn: 74, reserva: 2000, oferta: 139000, refuerzo: 7000, pago: "Contado", obs: "" },
-  { propiedadId: "P-1042", asesorId: "a1", contraparte: "Leandro Quiroga", generadoHace: 45, conformarEn: -38, refuerzoEn: -24, escrituraEn: 12, reserva: 8000, oferta: 298000, refuerzo: 25000, pago: "Contado", obs: "Operación vieja, ya conformada y con refuerzo hecho. Queda la escritura.", estado: "vigente" },
-  { propiedadId: "P-1044", asesorId: "a1", contraparte: "Silvana Toledo", generadoHace: 60, conformarEn: -55, refuerzoEn: -42, escrituraEn: -9, reserva: 6000, oferta: 255000, refuerzo: 18000, pago: "Tracto abreviado", obs: "Se venció el tope de escritura y nadie avisó nada.", estado: "vigente" },
+  { propiedadId: "P-1041", asesorId: "a1", contraparte: "Camila Cabrera", generadoHace: 8, vigenciaHace: 10, conformarEn: -2, escrituraEn: 52, reserva: 5000, oferta: 178000, refuerzo: 12000, pago: "Contado", obs: "El oferente viaja el jueves. Firma su hermana con poder." },
+  { propiedadId: "P-1043", asesorId: "a1", contraparte: "Pedro Nogués", generadoHace: 4, conformarEn: 1, escrituraEn: 58, reserva: 3000, oferta: 165000, refuerzo: 9000, pago: "Crédito hipotecario", obs: "Crédito Banco Nación en trámite. El banco tiene que informar antes del refuerzo." },
+  { propiedadId: "P-1048", asesorId: "a3", contraparte: "Rodrigo Vera", generadoHace: 12, conformarEn: 0, escrituraEn: 48, reserva: 4000, oferta: 210000, refuerzo: 15000, pago: "Tracto abreviado", obs: "" },
+  { propiedadId: "P-1052", asesorId: "a2", contraparte: "Estudio Márquez SA", generadoHace: 21, conformarEn: -6, escrituraEn: 39, reserva: 9000, oferta: 405000, refuerzo: 30000, pago: "Contado", obs: "Sucesión en trámite en el juzgado. Puede estirarse." },
+  { propiedadId: "P-1050", asesorId: "a4", contraparte: "Mariela Ponce", generadoHace: 3, conformarEn: 2, escrituraEn: 61, reserva: 2500, oferta: 126000, refuerzo: 8000, pago: "Crédito hipotecario", obs: "" },
+  { propiedadId: "P-1054", asesorId: "a12", contraparte: "Gustavo Iriondo", generadoHace: 30, conformarEn: -14, escrituraEn: 26, reserva: 4500, oferta: 188000, refuerzo: 14000, pago: "Contado", obs: "Ya se hizo una adenda por 30 días. Se podría estar por caer otra vez." },
+  { propiedadId: "P-1055", asesorId: "a15", contraparte: "Norma Salcedo", generadoHace: 1, conformarEn: 6, escrituraEn: 74, reserva: 2000, oferta: 139000, refuerzo: 7000, pago: "Contado", obs: "" },
+  { propiedadId: "P-1042", asesorId: "a1", contraparte: "Leandro Quiroga", generadoHace: 45, conformarEn: -38, escrituraEn: 12, reserva: 8000, oferta: 298000, refuerzo: 25000, pago: "Contado", obs: "Operación vieja, ya conformada y con refuerzo pagado. Queda la escritura.", estado: "vigente" },
+  { propiedadId: "P-1044", asesorId: "a1", contraparte: "Silvana Toledo", generadoHace: 60, conformarEn: -55, escrituraEn: -9, reserva: 6000, oferta: 255000, refuerzo: 18000, pago: "Tracto abreviado", obs: "Se venció el tope de escritura y nadie avisó nada.", estado: "vigente" },
 ];
 
 function armarRegistro(s: Semilla): Registro {
@@ -359,16 +358,14 @@ function armarRegistro(s: Semilla): Registro {
   });
 
   const conformado = s.conformarEn < 0 && s.generadoHace > 20;
-  const reforzado = s.refuerzoEn < 0 && s.generadoHace > 40;
 
+  // Sólo hay dos plazos vigilados: la aceptación del vendedor y la escritura.
+  // El refuerzo tiene monto pero no vencimiento propio (el papel lo fija en
+  // cinco días hábiles de notificada la conformación, sin fecha cierta todavía).
   const plazos: Plazo[] = [
-    plazo("conformar", "Conformación de la oferta", s.conformarEn, conformado),
-    plazo("refuerzo", "Refuerzo de seña", s.refuerzoEn, reforzado),
-    plazo("escritura", "Firma de boleto o escritura", s.escrituraEn, false),
+    plazo("conformar", "Aceptación del vendedor (vigencia de la reserva)", s.conformarEn, conformado),
+    plazo("escritura", "Escritura traslativa de dominio", s.escrituraEn, false),
   ];
-  if (s.pago.startsWith("Crédito")) {
-    plazos.splice(1, 0, plazo("banco", "Respuesta del banco", Math.round(s.refuerzoEn * 0.6), false));
-  }
 
   const historial: Evento[] = [
     ev(gen, "generado", `Documento generado y registrado por el asesor.`, "Asesor"),
@@ -376,7 +373,7 @@ function armarRegistro(s: Semilla): Registro {
   if (s.generadoHace > 25) {
     historial.push(
       ev(gen + 3 * dia, "aviso", "Aviso previo enviado al asesor, con copia oculta a gerencia.", "Automatización"),
-      ev(gen + 6 * dia, "adenda", "Adenda por 30 días sobre la conformación de la oferta.", "Gerencia"),
+      ev(gen + 6 * dia, "adenda", "Adenda por 30 días sobre la aceptación de la reserva.", "Gerencia"),
     );
   }
 
@@ -448,7 +445,7 @@ export const correosIniciales: Correo[] = [
     copiaOculta: [EMAIL_GERENCIA],
     asunto: `Vence en 3 días · ${registrosIniciales[0].id} · ${registrosIniciales[0].direccion}`,
     cuerpo:
-      "Hola Martín, en 3 días vence el plazo de conformación de la oferta de Av. Francisco Beiró 3456. Si ya se firmó una adenda, cargala en el sistema.",
+      "Hola Martín, en 3 días vence el plazo de aceptación del vendedor de Av. Francisco Beiró 3456. Si ya se firmó una adenda, cargala en el sistema.",
     registroId: registrosIniciales[0].id,
   },
   {
@@ -459,7 +456,7 @@ export const correosIniciales: Correo[] = [
     copiaOculta: [],
     asunto: `Plazo vencido · ${registrosIniciales[3].id} · ${registrosIniciales[3].direccion}`,
     cuerpo:
-      "El plazo de refuerzo de seña de Joaquín V. González 1890 venció ayer. Verificar si hay adenda firmada o si la operación quedó liberada.",
+      "El plazo de escritura de Joaquín V. González 1890 venció ayer. Verificar si hay adenda firmada o si la operación quedó liberada.",
     registroId: registrosIniciales[3].id,
   },
 ];

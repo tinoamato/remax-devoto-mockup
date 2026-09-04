@@ -316,6 +316,9 @@ export default function Expediente() {
             {plazos.map((p) => {
               const u = urgenciaDe(p.vence, e.ahora);
               const corrido = p.vence !== p.original;
+              // Si se movió por una adenda registrada, movidoPor guarda su número (AD-...).
+              // Si se movió a mano desde "Editar vigencia" sin ese respaldo, no hay papel todavía.
+              const sinDocumentar = corrido && Boolean(p.movidoPor) && !p.movidoPor?.startsWith("AD-");
               return (
                 <li
                   key={p.id}
@@ -370,6 +373,15 @@ export default function Expediente() {
 
                     {!p.cumplido && <Cuenta vence={p.vence} ahora={e.ahora} />}
                   </div>
+
+                  {sinDocumentar && (
+                    <p className="flex items-center gap-1.5 mt-2 pl-[30px]">
+                      <Etiqueta t="hoy">Sin documentación cargada</Etiqueta>
+                      <span className="text-[11px] text-[var(--tinta-suave)]">
+                        Gerencia corrigió esta fecha a mano; todavía no hay adenda que la respalde.
+                      </span>
+                    </p>
+                  )}
 
                   {!p.cumplido && r.estado === "vigente" && (
                     <div className="flex flex-wrap gap-1.5 mt-2 pl-[30px]">
