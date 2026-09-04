@@ -120,8 +120,8 @@ function VistaPanel() {
 
       <div className="p-4 grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)] xl:items-stretch">
         {/* Cola de riesgo — el foco de la pantalla */}
-        <div className="min-w-0">
-          <Panel>
+        <div className="flex flex-col min-w-0">
+          <Panel className="xl:flex-1 xl:flex xl:flex-col">
             <CabezaPanel
               titulo="Cola de riesgo"
               cuenta={opsConRiesgo.length}
