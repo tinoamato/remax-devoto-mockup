@@ -44,11 +44,7 @@ const TITULOS: Record<string, string> = {
 function Marca() {
   return (
     <div className="flex items-center gap-2.5">
-      <span className="flex h-[18px] w-[26px] overflow-hidden rounded-[2px]" aria-hidden="true">
-        <span className="flex-1 bg-[#D62B34]" />
-        <span className="flex-1 bg-white" />
-        <span className="flex-1 bg-[#00539B]" />
-      </span>
+      <span className="h-[7px] w-[7px] rounded-full bg-[#A62F1C]" aria-hidden="true" />
       <span className="text-[12.5px] font-bold tracking-[0.08em] text-white">RE/MAX</span>
       <span className="hidden sm:inline text-[12px] text-white/35">·</span>
       <span className="hidden sm:inline text-[12px] text-white/60">Devoto</span>
