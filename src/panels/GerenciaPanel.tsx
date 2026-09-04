@@ -118,9 +118,9 @@ function VistaPanel() {
         />
       </div>
 
-      <div className="p-4 grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)] items-start">
+      <div className="p-4 grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)] xl:items-stretch">
         {/* Cola de riesgo — el foco de la pantalla */}
-        <div className="space-y-4 min-w-0">
+        <div className="min-w-0">
           <Panel>
             <CabezaPanel
               titulo="Cola de riesgo"
@@ -214,7 +214,7 @@ function VistaPanel() {
         </div>
 
         {/* Columna derecha */}
-        <div className="space-y-4 min-w-0">
+        <div className="flex flex-col gap-4 min-w-0 xl:justify-between">
           {/* Consultas sin asignar — segundo foco */}
           <Panel className={sinAsignar.length ? "border-[var(--lacre-borde)]" : undefined}>
             <CabezaPanel
