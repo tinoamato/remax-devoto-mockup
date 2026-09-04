@@ -66,8 +66,7 @@ function Dato({
 
 function VistaPanel() {
   const { e, d } = useApp();
-  const { opsConRiesgo, enRiesgo, sinAsignar, asesorPorId, comisionProyectada, vencidosContacto } =
-    useDerivados();
+  const { opsConRiesgo, enRiesgo, asesorPorId, comisionProyectada, vencidosContacto } = useDerivados();
   const nav = useNav();
 
   const montoEnRiesgo = enRiesgo.reduce((s, x) => s + x.op.precio, 0);
@@ -75,6 +74,9 @@ function VistaPanel() {
     const ops = e.operaciones.filter((o) => b.etapas.includes(o.etapa));
     return { ...b, n: ops.length, monto: ops.reduce((s, o) => s + o.precio, 0) };
   });
+  /* Escritura, entrega de llaves o liquidación: la operación ya está cerrando. */
+  const enCierre = e.operaciones.filter((o) => o.etapa >= 10);
+  const montoEnCierre = enCierre.reduce((s, o) => s + o.precio, 0);
   const maxMonto = Math.max(...pipeline.map((p) => p.monto), 1);
   const ranking = [...e.asesores].sort((a, b) => b.comisionMes - a.comisionMes).slice(0, 6);
   const pctObjetivo = Math.round((comisionProyectada / objetivoMes) * 100);
@@ -96,14 +98,10 @@ function VistaPanel() {
         />
         <Dato
           grande
-          rotulo="Consultas sin asignar"
-          valor={String(sinAsignar.length)}
-          pie={
-            sinAsignar.length
-              ? `la más vieja, ${hace(Math.min(...sinAsignar.map((l) => l.ingreso)), e.ahora)}`
-              : "cola limpia"
-          }
-          color={sinAsignar.length ? "var(--lacre)" : "var(--verde)"}
+          rotulo="En etapa de cierre"
+          valor={String(enCierre.length)}
+          pie={enCierre.length ? `${usd(montoEnCierre)} en escritura o liquidación` : "nada cerrando esta semana"}
+          color="var(--verde)"
         />
         <Dato
           rotulo="Comisión proyectada"
@@ -215,78 +213,39 @@ function VistaPanel() {
 
         {/* Columna derecha */}
         <div className="flex flex-col gap-4 min-w-0 xl:justify-between">
-          {/* Consultas sin asignar — segundo foco */}
-          <Panel className={sinAsignar.length ? "border-[var(--lacre-borde)]" : undefined}>
-            <CabezaPanel
-              titulo="Consultas sin asignar"
-              cuenta={sinAsignar.length}
-              extra={
-                <Boton chico onClick={() => nav.irAsesor("consultas")}>
-                  Ver todas
-                </Boton>
-              }
-            />
-            {sinAsignar.length === 0 ? (
+          {/* Camino al cierre — etapa y documentación, sin datos de clientes */}
+          <Panel>
+            <CabezaPanel titulo="Camino al cierre" cuenta={enCierre.length} />
+            {enCierre.length === 0 ? (
               <Vacio
                 ico="tilde"
-                titulo="No hay consultas esperando"
-                detalle="Todas las consultas entrantes están asignadas."
+                titulo="Nada en escritura o liquidación"
+                detalle="Cuando una operación llegue a la etapa final aparece acá."
               />
             ) : (
-              sinAsignar.map((l) => {
-                const p = e.propiedades.find((x) => x.id === l.propiedadId);
-                const min = Math.round((e.ahora - l.ingreso) / 60000);
-                return (
-                  <div
-                    key={l.id}
-                    className="flex items-center gap-2.5 px-3.5 py-2.5 border-b border-[var(--linea-suave)] last:border-b-0"
-                  >
-                    <span
-                      className="num text-[13px] font-semibold w-11 shrink-0"
-                      style={{ color: min > 15 ? "var(--lacre)" : "var(--ambar)" }}
+              [...enCierre]
+                .sort((a, b) => a.vence - b.vence)
+                .map((op) => {
+                  const ok = op.docs.filter((x) => x.estado === "completo").length;
+                  const crit = op.docs.filter((x) => x.critico && x.estado !== "completo").length;
+                  return (
+                    <button
+                      key={op.id}
+                      type="button"
+                      onClick={() => nav.abrirOp(op.id)}
+                      className="w-full flex items-center gap-2.5 px-3.5 py-2.5 border-b border-[var(--linea-suave)] last:border-b-0 hover:bg-[var(--papel-hundido)]/50 transition-colors text-left"
                     >
-                      {min}m
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[12.5px] font-medium truncate">{l.nombre}</p>
-                      <p className="text-[11px] text-[var(--tinta-tenue)] truncate">
-                        {l.origen} · {p?.direccion ?? "—"}
-                      </p>
-                    </div>
-                    <Menu
-                      disparador={(abrir) => (
-                        <Boton chico tono="primario" onClick={abrir}>
-                          Asignar
-                        </Boton>
-                      )}
-                    >
-                      {(cerrar) => (
-                        <>
-                          <p className="rotulo px-2.5 py-1">Menor carga primero</p>
-                          {[...e.asesores]
-                            .sort((x, y) => x.minRespuestaProm - y.minRespuestaProm)
-                            .slice(0, 6)
-                            .map((a) => (
-                              <ItemMenu
-                                key={a.id}
-                                ico="persona"
-                                onClick={() => {
-                                  d({ t: "lead.asignar", leadId: l.id, asesorId: a.id });
-                                  cerrar();
-                                }}
-                              >
-                                {a.nombre}
-                                <span className="num ml-auto text-[10.5px] text-[var(--tinta-tenue)]">
-                                  {a.minRespuestaProm}m
-                                </span>
-                              </ItemMenu>
-                            ))}
-                        </>
-                      )}
-                    </Menu>
-                  </div>
-                );
-              })
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[12.5px] font-medium truncate">{op.propiedad}</p>
+                        <p className="text-[11px] text-[var(--tinta-tenue)] truncate">
+                          {ETAPAS[op.etapa]} · {ok}/{op.docs.length} doc.
+                          {crit > 0 && <span style={{ color: "var(--lacre)" }}> · {crit} crít.</span>}
+                        </p>
+                      </div>
+                      <Cuenta vence={op.vence} ahora={e.ahora} />
+                    </button>
+                  );
+                })
             )}
           </Panel>
 

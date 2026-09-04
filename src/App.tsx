@@ -126,7 +126,7 @@ function BarraSuperior() {
         )}
       </button>
 
-      {sinAsignar.length > 0 && (
+      {nav.modo === "asesor" && sinAsignar.length > 0 && (
         <button
           type="button"
           onClick={() => nav.irAsesor("consultas")}

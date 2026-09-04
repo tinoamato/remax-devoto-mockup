@@ -189,32 +189,34 @@ export function FichaPropiedad() {
           </button>
         )}
 
-        {/* Consultas */}
-        <section className="bg-[var(--papel-alto)] border border-[var(--linea)] rounded-[var(--r-md)]">
-          <div className="flex items-center gap-2 px-3.5 h-9 border-b border-[var(--linea-suave)]">
-            <p className="rotulo">Consultas recibidas</p>
-            <span className="num text-[11px] text-[var(--tinta-tenue)]">{leads.length}</span>
-          </div>
-          {leads.length === 0 ? (
-            <p className="px-3.5 py-4 text-[12.5px] text-[var(--tinta-tenue)]">
-              Sin consultas registradas para esta propiedad.
-            </p>
-          ) : (
-            leads.map((l) => (
-              <div
-                key={l.id}
-                className="flex items-center gap-2.5 px-3.5 py-2.5 border-b border-[var(--linea-suave)] last:border-b-0"
-              >
-                <Inicial txt={l.nombre.slice(0, 2).toUpperCase()} s={24} />
-                <div className="min-w-0 flex-1">
-                  <p className="text-[12.5px] truncate">{l.nombre}</p>
-                  <p className="text-[11px] text-[var(--tinta-tenue)]">{l.origen}</p>
+        {/* Consultas — quién está interesado es información del asesor, no de gerencia */}
+        {nav.modo === "asesor" && (
+          <section className="bg-[var(--papel-alto)] border border-[var(--linea)] rounded-[var(--r-md)]">
+            <div className="flex items-center gap-2 px-3.5 h-9 border-b border-[var(--linea-suave)]">
+              <p className="rotulo">Consultas recibidas</p>
+              <span className="num text-[11px] text-[var(--tinta-tenue)]">{leads.length}</span>
+            </div>
+            {leads.length === 0 ? (
+              <p className="px-3.5 py-4 text-[12.5px] text-[var(--tinta-tenue)]">
+                Sin consultas registradas para esta propiedad.
+              </p>
+            ) : (
+              leads.map((l) => (
+                <div
+                  key={l.id}
+                  className="flex items-center gap-2.5 px-3.5 py-2.5 border-b border-[var(--linea-suave)] last:border-b-0"
+                >
+                  <Inicial txt={l.nombre.slice(0, 2).toUpperCase()} s={24} />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[12.5px] truncate">{l.nombre}</p>
+                    <p className="text-[11px] text-[var(--tinta-tenue)]">{l.origen}</p>
+                  </div>
+                  <Etiqueta t={l.estado === "sin asignar" ? "vencida" : "neutro"}>{l.estado}</Etiqueta>
                 </div>
-                <Etiqueta t={l.estado === "sin asignar" ? "vencida" : "neutro"}>{l.estado}</Etiqueta>
-              </div>
-            ))
-          )}
-        </section>
+              ))
+            )}
+          </section>
+        )}
 
         {/* Descripción */}
         <section className="bg-[var(--papel-alto)] border border-[var(--linea)] rounded-[var(--r-md)] p-3.5">
