@@ -233,7 +233,7 @@ export function Expediente() {
       >
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="exp">{op.id}</span>
               <EtiquetaUrgencia u={u} />
               {op.escalada && <Etiqueta t="vencida">Escalada</Etiqueta>}
@@ -288,12 +288,13 @@ export function Expediente() {
       {/* Riel de etapas */}
       <div className="shrink-0">
         <RielEtapas etapas={ETAPAS} actual={op.etapa} />
-        <div className="flex items-center gap-2 px-4 py-2 bg-[var(--papel-alto)] border-b border-[var(--linea)]">
+        <div className="flex items-center flex-wrap gap-2 px-4 py-2 bg-[var(--papel-alto)] border-b border-[var(--linea)]">
           <Boton
             chico
             ico="chevIzq"
             disabled={op.etapa === 0}
             onClick={() => d({ t: "op.retroceder", opId: op.id })}
+            className="whitespace-nowrap"
           >
             Atrás
           </Boton>
@@ -302,12 +303,13 @@ export function Expediente() {
             tono="primario"
             disabled={op.etapa >= 12}
             onClick={() => d({ t: "op.avanzar", opId: op.id })}
+            className="whitespace-nowrap"
           >
             Avanzar a {ETAPAS[Math.min(12, op.etapa + 1)]}
           </Boton>
           {criticosFaltan.length > 0 && (
             <span
-              className="flex items-center gap-1 text-[11.5px]"
+              className="flex items-center gap-1 text-[11.5px] whitespace-nowrap"
               style={{ color: "var(--lacre)" }}
               title={criticosFaltan.map((x) => x.nombre).join(", ")}
             >
@@ -539,21 +541,21 @@ export function Expediente() {
       </div>
 
       {/* Pie de acciones */}
-      <footer className="shrink-0 flex items-center gap-2 px-4 py-2.5 border-t border-[var(--linea)] bg-[var(--papel-alto)]">
-        <Boton ico="usuarioMas" onClick={() => setModal("reasignar")}>
+      <footer className="shrink-0 flex items-center flex-wrap gap-2 px-4 py-2.5 border-t border-[var(--linea)] bg-[var(--papel-alto)]">
+        <Boton ico="usuarioMas" className="whitespace-nowrap" onClick={() => setModal("reasignar")}>
           Reasignar
         </Boton>
         {!op.escalada ? (
-          <Boton tono="peligro" ico="alerta" onClick={() => setModal("escalar")}>
+          <Boton tono="peligro" ico="alerta" className="whitespace-nowrap" onClick={() => setModal("escalar")}>
             Escalar
           </Boton>
         ) : (
-          <Boton ico="tilde" onClick={() => d({ t: "op.desescalar", opId: op.id })}>
+          <Boton ico="tilde" className="whitespace-nowrap" onClick={() => d({ t: "op.desescalar", opId: op.id })}>
             Cerrar escalamiento
           </Boton>
         )}
         <Boton
-          className="ml-auto"
+          className="ml-auto whitespace-nowrap"
           ico="documento"
           onClick={() => {
             nav.irAsesor("docs");

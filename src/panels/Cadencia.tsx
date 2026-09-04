@@ -13,6 +13,7 @@ import {
   Inicial,
   Modal,
   Panel,
+  PistaScroll,
   Selector,
   Td,
   Th,
@@ -214,6 +215,8 @@ export default function VistaCadencia() {
                 ))}
               </Selector>
             </div>
+
+            <PistaScroll />
 
             <div className="overflow-x-auto scroll">
               {filas.length === 0 ? (

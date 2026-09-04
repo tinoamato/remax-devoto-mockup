@@ -49,7 +49,7 @@ function Marca() {
       <span className="hidden sm:inline text-[12px] text-white/35">·</span>
       <span className="hidden sm:inline text-[12px] text-white/60">Devoto</span>
       <span
-        className="num ml-1 px-1.5 h-[17px] inline-flex items-center rounded-[2px] border border-white/20 text-[9.5px] tracking-[0.09em] text-white/55"
+        className="hidden sm:inline-flex num ml-1 px-1.5 h-[17px] items-center rounded-[2px] border border-white/20 text-[9.5px] tracking-[0.09em] text-white/55 whitespace-nowrap"
         title="Maqueta de demostración. Todos los datos son inventados."
       >
         PROTOTIPO · DATOS FICTICIOS

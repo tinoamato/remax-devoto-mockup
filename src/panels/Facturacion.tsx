@@ -3,7 +3,7 @@ import { useApp, useDerivados, type Proyeccion, type Semaforo } from "../state/s
 import { useNav } from "../state/nav";
 import { Icono } from "../lib/icons";
 import { cn, usd } from "../lib/format";
-import { Barra, Buscador, CabezaPanel, Etiqueta, Inicial, Panel, Td, Th, Vacio } from "../components/ui";
+import { Barra, Buscador, CabezaPanel, Etiqueta, Inicial, Panel, PistaScroll, Td, Th, Vacio } from "../components/ui";
 
 export const COLOR_SEM: Record<Semaforo, string> = {
   verde: "var(--verde)",
@@ -146,7 +146,7 @@ export default function VistaFacturacion() {
         </div>
         <div className="px-4 py-3">
           <p className="rotulo">Facturación que se evapora</p>
-          <p className="num text-[32px] font-semibold leading-none mt-1.5" style={{ color: "var(--ambar)" }}>
+          <p className="num text-[22px] sm:text-[32px] font-semibold leading-none mt-1.5" style={{ color: "var(--ambar)" }}>
             {usd(evapora)}
           </p>
           <p className="text-[11.5px] text-[var(--tinta-tenue)] mt-1.5">
@@ -216,6 +216,8 @@ export default function VistaFacturacion() {
                 </button>
               ))}
             </div>
+
+            <PistaScroll />
 
             <div className="overflow-x-auto scroll">
               {filas.length === 0 ? (

@@ -651,6 +651,16 @@ export function ItemMenu({
 
 /* ── Tabla ──────────────────────────────────────────────────── */
 
+/** Aviso de que la tabla scrollea horizontal — solo hace falta en mobile. */
+export function PistaScroll() {
+  return (
+    <p className="sm:hidden flex items-center gap-1.5 px-4 py-1.5 text-[11px] text-[var(--tinta-tenue)] bg-[var(--papel-hundido)]/70 border-b border-[var(--linea-suave)]">
+      <Icono n="flechaDer" s={11} />
+      Deslizá la tabla para el costado para ver más columnas
+    </p>
+  );
+}
+
 export function Th({
   children,
   ancho,

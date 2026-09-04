@@ -22,6 +22,7 @@ import {
   Menu,
   Modal,
   Panel,
+  PistaScroll,
   Riesgo,
   Selector,
   Td,
@@ -152,7 +153,7 @@ function VistaPanel() {
                           <span className="hidden sm:inline text-[11.5px] text-[var(--tinta-suave)] truncate">
                             {a?.nombre}
                           </span>
-                          <span className="exp truncate">
+                          <span className="exp">
                             {op.id} · {usd(op.precio)}
                           </span>
                         </span>
@@ -407,6 +408,8 @@ function VistaTorre() {
         <span className="num text-[11.5px] text-[var(--tinta-tenue)]">{filas.length}</span>
       </div>
 
+      <PistaScroll />
+
       <div className="flex-1 overflow-auto scroll">
         {filas.length === 0 ? (
           <Vacio
@@ -596,7 +599,7 @@ function FichaAsesor({ id, cerrar }: { id: string; cerrar: () => void }) {
       </header>
 
       <div className="flex-1 overflow-y-auto scroll">
-        <div className="grid grid-cols-5 divide-x divide-[var(--linea)] border-b border-[var(--linea)] bg-[var(--papel-alto)]">
+        <div className="grid grid-cols-3 sm:grid-cols-5 divide-x divide-y sm:divide-y-0 divide-[var(--linea)] border-b border-[var(--linea)] bg-[var(--papel-alto)]">
           <Dato rotulo="Comisión mes" valor={usd(a.comisionMes)} color={PERF_COLOR[perf]} />
           <Dato rotulo="Activas" valor={String(a.activas)} />
           <Dato rotulo="Cerradas" valor={String(a.cerradas)} />
@@ -931,6 +934,8 @@ function VistaEquipo() {
         </Boton>
       </div>
 
+      <PistaScroll />
+
       <div className="flex-1 overflow-auto scroll">
         <table className="w-full min-w-[880px] border-collapse">
           <thead className="sticky top-0 z-10">
@@ -1124,6 +1129,8 @@ function VistaCartera() {
           Nueva propiedad
         </Boton>
       </div>
+
+      <PistaScroll />
 
       <div className="flex-1 overflow-auto scroll">
         <table className="w-full min-w-[900px] border-collapse">
