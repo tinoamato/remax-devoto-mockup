@@ -1,0 +1,193 @@
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+@import 'tailwindcss';
+
+/* ─────────────────────────────────────────────────────────────
+   Sistema "Expediente" — consola operativa de escribanía
+   Papel oficio, tinta de firma, sello lacre. Profundidad por
+   borde + cambio tonal. Nunca sombras dramáticas.
+   ───────────────────────────────────────────────────────────── */
+
+:root {
+  /* Superficies — un solo matiz, sólo cambia luminosidad */
+  --papel: #F5F4F0;
+  --papel-alto: #FFFFFF;
+  --papel-hundido: #EFEDE7;
+  --papel-marca: #1A1917;
+
+  /* Tinta — cuatro niveles, no dos */
+  --tinta: #1A1917;
+  --tinta-media: #4C4941;
+  --tinta-suave: #78746A;
+  --tinta-tenue: #A5A096;
+
+  /* Líneas — se ven cuando las buscás, no antes */
+  --linea: #E3E0D8;
+  --linea-suave: #EDEBE4;
+  --linea-fuerte: #CDC8BC;
+
+  /* Un solo acento */
+  --sello: #17457A;
+  --sello-alto: #1D5698;
+  --sello-tenue: #E7EDF5;
+  --sello-borde: #C3D2E5;
+
+  /* Semánticos — atenuados, no saturados */
+  --lacre: #A62F1C;
+  --lacre-tenue: #FAEEEB;
+  --lacre-borde: #EBCFC8;
+  --ambar: #8A5408;
+  --ambar-tenue: #FBF2E3;
+  --ambar-borde: #E9D8B6;
+  --verde: #1A6650;
+  --verde-tenue: #E9F3EF;
+  --verde-borde: #C4DED4;
+
+  /* Radios — escala corta y seca */
+  --r-xs: 3px;
+  --r-sm: 4px;
+  --r-md: 6px;
+  --r-lg: 10px;
+
+  color-scheme: light;
+}
+
+@theme inline {
+  --color-papel: var(--papel);
+  --color-papel-alto: var(--papel-alto);
+  --color-papel-hundido: var(--papel-hundido);
+  --color-tinta: var(--tinta);
+  --color-tinta-media: var(--tinta-media);
+  --color-tinta-suave: var(--tinta-suave);
+  --color-tinta-tenue: var(--tinta-tenue);
+  --color-linea: var(--linea);
+  --color-linea-suave: var(--linea-suave);
+  --color-linea-fuerte: var(--linea-fuerte);
+  --color-sello: var(--sello);
+  --color-sello-alto: var(--sello-alto);
+  --color-sello-tenue: var(--sello-tenue);
+  --color-sello-borde: var(--sello-borde);
+  --color-lacre: var(--lacre);
+  --color-lacre-tenue: var(--lacre-tenue);
+  --color-lacre-borde: var(--lacre-borde);
+  --color-ambar: var(--ambar);
+  --color-ambar-tenue: var(--ambar-tenue);
+  --color-ambar-borde: var(--ambar-borde);
+  --color-verde: var(--verde);
+  --color-verde-tenue: var(--verde-tenue);
+  --color-verde-borde: var(--verde-borde);
+  --font-sans: 'Archivo', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --radius-xs: var(--r-xs);
+  --radius-sm: var(--r-sm);
+  --radius-md: var(--r-md);
+  --radius-lg: var(--r-lg);
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--papel);
+  color: var(--tinta);
+  font-family: 'Archivo', system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4 { text-wrap: balance; margin: 0; }
+p { text-wrap: pretty; margin: 0; }
+
+/* Datos siempre tabulares — sin salto de layout al tickear */
+.num {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+/* Identificadores de expediente */
+.exp {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  color: var(--tinta-tenue);
+}
+
+/* Rótulo de carpeta — mayúscula chica, no pill */
+.rotulo {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tinta-suave);
+}
+
+/* Foco visible y consistente en todo */
+:where(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--sello);
+  outline-offset: 1px;
+  border-radius: var(--r-xs);
+}
+
+/* Scroll discreto */
+.scroll::-webkit-scrollbar { width: 9px; height: 9px; }
+.scroll::-webkit-scrollbar-track { background: transparent; }
+.scroll::-webkit-scrollbar-thumb {
+  background: var(--linea-fuerte);
+  border-radius: 9px;
+  border: 3px solid var(--papel);
+}
+.scroll::-webkit-scrollbar-thumb:hover { background: var(--tinta-tenue); }
+.scroll { scrollbar-width: thin; scrollbar-color: var(--linea-fuerte) transparent; }
+
+.sin-scroll::-webkit-scrollbar { display: none; }
+.sin-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Elevación: un anillo de 1px + dos capas suaves. Nada dramático. */
+.alza {
+  box-shadow:
+    0 0 0 1px rgb(26 25 23 / 0.06),
+    0 1px 2px -1px rgb(26 25 23 / 0.06),
+    0 2px 6px rgb(26 25 23 / 0.04);
+}
+.alza-alta {
+  box-shadow:
+    0 0 0 1px rgb(26 25 23 / 0.08),
+    0 4px 10px -4px rgb(26 25 23 / 0.12),
+    0 12px 32px -8px rgb(26 25 23 / 0.14);
+}
+
+/* Trama de papel: textura mínima que evita el "blanco de plantilla" */
+.trama {
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      transparent 0 27px,
+      rgb(26 25 23 / 0.022) 27px 28px
+    );
+}
+
+/* Entradas — sólo transform/opacity */
+@keyframes surgir {
+  from { opacity: 0; transform: translateY(6px) scale(0.985); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes deslizar {
+  from { opacity: 0; transform: translateX(12px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes velo {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.a-surgir  { animation: surgir 180ms cubic-bezier(0.23, 1, 0.32, 1) both; }
+.a-deslizar{ animation: deslizar 200ms cubic-bezier(0.23, 1, 0.32, 1) both; }
+.a-velo    { animation: velo 140ms ease-out both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .a-surgir, .a-deslizar, .a-velo { animation: velo 1ms both; }
+  * { transition-duration: 1ms !important; }
+}

@@ -1,0 +1,10 @@
+{
+  "description": "Gestión integral de operaciones inmobiliarias para asesores y gerentes con seguimiento de plazos, documentos y comisiones en un panel claro y eficiente.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
