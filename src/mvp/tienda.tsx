@@ -1,0 +1,613 @@
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useReducer,
+  type ReactNode,
+} from "react";
+import {
+  AHORA,
+  EMAIL_GERENCIA,
+  adendasIniciales,
+  cierreDe,
+  asesores as asesoresSeed,
+  correosIniciales,
+  propiedades,
+  registrosIniciales,
+  reglasIniciales,
+  umbralesIniciales,
+  type Adenda,
+  type Asesor,
+  type Correo,
+  type Evento,
+  type EstadoRegistro,
+  type MotivoCorreo,
+  type Plazo,
+  type Registro,
+  type Regla,
+  type Umbrales,
+} from "./datos";
+import { plantillaPorId } from "./plantillas";
+
+const dia = 86_400_000;
+
+/* ── Estado ─────────────────────────────────────────────────── */
+
+export interface Aviso {
+  id: number;
+  texto: string;
+  tono: "neutro" | "ok" | "riesgo";
+}
+
+export interface Estado {
+  ahora: number;
+  registros: Registro[];
+  adendas: Adenda[];
+  asesores: Asesor[];
+  correos: Correo[];
+  reglas: Regla[];
+  umbrales: Umbrales;
+  avisos: Aviso[];
+  yo: string;
+}
+
+const inicial: Estado = {
+  ahora: AHORA,
+  registros: registrosIniciales,
+  adendas: adendasIniciales,
+  asesores: asesoresSeed,
+  correos: correosIniciales,
+  reglas: reglasIniciales,
+  umbrales: umbralesIniciales,
+  avisos: [],
+  yo: "a1",
+};
+
+/* ── Acciones ───────────────────────────────────────────────── */
+
+export type Accion =
+  | { t: "tic" }
+  | { t: "yo"; asesorId: string }
+  | {
+      t: "registro.crear";
+      plantillaId: string;
+      propiedadId: string | null;
+      valores: Record<string, string>;
+    }
+  | { t: "registro.estado"; registroId: string; estado: EstadoRegistro }
+  | { t: "registro.nota"; registroId: string; texto: string }
+  | { t: "plazo.cumplir"; registroId: string; plazoId: string }
+  | { t: "plazo.mover"; registroId: string; plazoId: string; dias: number; motivo: string }
+  | {
+      t: "adenda.registrar";
+      registroId: string;
+      plazoId: string;
+      dias: number;
+      motivo: string;
+      nuevoPrecio?: number;
+      autor?: string;
+    }
+  | { t: "doc.enviar"; registroId: string; destino: "recepcion" | "cliente"; direccion: string }
+  | { t: "factura.set"; asesorId: string; mes: number; monto: number }
+  | { t: "umbrales.set"; cambio: Partial<Umbrales> }
+  | { t: "regla.set"; id: Regla["id"]; cambio: Partial<Regla> }
+  | { t: "regla.probar"; id: Regla["id"] }
+  | { t: "contacto.registrar"; asesorId: string; nota: string }
+  | { t: "contacto.tope"; asesorId: string; dias: number }
+  | { t: "aviso.cerrar"; id: number };
+
+let seqAviso = 1;
+let seqId = 900;
+/** Los expedientes siguen la numeración de la oficina, no la interna. */
+let seqExpediente = 149;
+const nid = (p: string) => `${p}-${++seqId}`;
+
+function evento(ts: number, tipo: Evento["tipo"], texto: string, autor: string): Evento {
+  return { id: nid("e"), ts, tipo, texto, autor };
+}
+
+function avisar(e: Estado, texto: string, tono: Aviso["tono"] = "neutro"): Aviso[] {
+  return [...e.avisos, { id: seqAviso++, texto, tono }].slice(-3);
+}
+
+function mapReg(e: Estado, id: string, f: (r: Registro) => Registro): Registro[] {
+  return e.registros.map((r) => (r.id === id ? f(r) : r));
+}
+
+/** Correo que la automatización dejaría en la bandeja de gerencia. */
+function correo(
+  e: Estado,
+  motivo: MotivoCorreo,
+  asunto: string,
+  cuerpo: string,
+  para: string[],
+  oculta: string[],
+  registroId?: string,
+): Correo {
+  return { id: nid("c"), ts: e.ahora, motivo, asunto, cuerpo, para, copiaOculta: oculta, registroId };
+}
+
+function reducir(e: Estado, a: Accion): Estado {
+  switch (a.t) {
+    case "tic":
+      return { ...e, ahora: Date.now() };
+
+    case "yo":
+      return { ...e, yo: a.asesorId };
+
+    case "registro.crear": {
+      const pl = plantillaPorId(a.plantillaId);
+      if (!pl) return e;
+      const prop = propiedades.find((p) => p.id === a.propiedadId);
+      const id = `RES-${String(++seqExpediente).padStart(4, "0")}`;
+      const plazos: Plazo[] = pl.plazos
+        .filter((dp) => !dp.visibleSi || dp.visibleSi.valores.includes(a.valores[dp.visibleSi.campo] ?? ""))
+        .map((dp) => {
+          const d = Number(a.valores[dp.campoDias] ?? 0) || 0;
+          const vence = cierreDe(e.ahora + d * dia);
+          return { id: dp.id, rotulo: dp.rotulo, vence, original: vence, cumplido: false };
+        })
+        .sort((x, y) => x.vence - y.vence);
+
+      const asesor = e.asesores.find((x) => x.id === e.yo);
+      const contraparte = a.valores[pl.campoContraparte] || "Sin identificar";
+
+      // Una adenda no crea un expediente nuevo: corre el plazo del que ya existe.
+      if (pl.esAdenda) {
+        const padre = e.registros.find((r) => r.id === a.valores.registroPadre);
+        if (!padre) return { ...e, avisos: avisar(e, "No se encontró la reserva de origen.", "riesgo") };
+        // El formulario ofrece los plazos por su rótulo; acá se traduce al id.
+        const plazoId =
+          padre.plazos.find((p) => p.rotulo === a.valores.plazoAfectado)?.id ?? a.valores.plazoAfectado;
+        return reducir(e, {
+          t: "adenda.registrar",
+          registroId: padre.id,
+          plazoId,
+          dias: Number(a.valores.diasExtension) || 0,
+          motivo: a.valores.otraCondicion || a.valores.observaciones || "Extensión de plazo por adenda.",
+          nuevoPrecio: a.valores.cambiaPrecio === "Sí, cambia" ? Number(a.valores.nuevoPrecio) : undefined,
+          autor: asesor?.nombre ?? "Asesor",
+        });
+      }
+
+      const reg: Registro = {
+        id,
+        plantillaId: pl.id,
+        propiedadId: a.propiedadId,
+        direccion: a.valores.direccion || prop?.direccion || "Sin dirección",
+        unidad: a.valores.unidad || prop?.unidad || "",
+        asesorId: e.yo,
+        contraparte,
+        generadoEn: e.ahora,
+        valores: a.valores,
+        plazos,
+        estado: "vigente",
+        observaciones: a.valores.observaciones ?? "",
+        historial: [
+          evento(
+            e.ahora,
+            "generado",
+            `${pl.nombre} generado y registrado. Quedan corriendo ${plazos.length} plazos.`,
+            asesor?.nombre ?? "Asesor",
+          ),
+        ],
+      };
+      return {
+        ...e,
+        registros: [reg, ...e.registros],
+        avisos: avisar(e, `${id} registrado. Gerencia ya lo ve en el panel de vencimientos.`, "ok"),
+      };
+    }
+
+    case "registro.estado": {
+      const rotulo: Record<EstadoRegistro, string> = {
+        vigente: "reabierto",
+        cerrado: "cerrado: la operación se concretó",
+        caido: "dado de baja: la operación se cayó",
+      };
+      return {
+        ...e,
+        registros: mapReg(e, a.registroId, (r) => ({
+          ...r,
+          estado: a.estado,
+          historial: [...r.historial, evento(e.ahora, "estado", `Expediente ${rotulo[a.estado]}.`, "Gerencia")],
+        })),
+        avisos: avisar(e, `${a.registroId} — ${rotulo[a.estado]}.`, a.estado === "caido" ? "riesgo" : "ok"),
+      };
+    }
+
+    case "registro.nota":
+      return {
+        ...e,
+        registros: mapReg(e, a.registroId, (r) => ({
+          ...r,
+          historial: [...r.historial, evento(e.ahora, "nota", a.texto, "Gerencia")],
+        })),
+      };
+
+    case "plazo.cumplir":
+      return {
+        ...e,
+        registros: mapReg(e, a.registroId, (r) => {
+          const p = r.plazos.find((x) => x.id === a.plazoId);
+          return {
+            ...r,
+            plazos: r.plazos.map((x) => (x.id === a.plazoId ? { ...x, cumplido: !x.cumplido } : x)),
+            historial: [
+              ...r.historial,
+              evento(
+                e.ahora,
+                "plazo",
+                p?.cumplido ? `Se reabrió el plazo «${p.rotulo}».` : `Se marcó cumplido el plazo «${p?.rotulo}».`,
+                "Gerencia",
+              ),
+            ],
+          };
+        }),
+      };
+
+    case "plazo.mover":
+      return {
+        ...e,
+        registros: mapReg(e, a.registroId, (r) => {
+          const p = r.plazos.find((x) => x.id === a.plazoId);
+          if (!p) return r;
+          const nuevo = cierreDe(p.vence + a.dias * dia);
+          return {
+            ...r,
+            plazos: r.plazos.map((x) =>
+              x.id === a.plazoId ? { ...x, vence: nuevo, movidoPor: "Gerencia" } : x,
+            ),
+            historial: [
+              ...r.historial,
+              evento(
+                e.ahora,
+                "plazo",
+                `Gerencia movió «${p.rotulo}» ${a.dias > 0 ? "+" : ""}${a.dias} días, al ${new Date(nuevo).toLocaleDateString("es-AR")}. ${a.motivo}`.trim(),
+                "Gerencia",
+              ),
+            ],
+          };
+        }),
+        avisos: avisar(e, `Plazo movido y anotado en el historial de ${a.registroId}.`, "ok"),
+      };
+
+    case "adenda.registrar": {
+      const reg = e.registros.find((r) => r.id === a.registroId);
+      if (!reg) return e;
+      const p = reg.plazos.find((x) => x.id === a.plazoId);
+      if (!p) return e;
+      const ad: Adenda = {
+        id: `AD-${String(++seqExpediente).padStart(4, "0")}`,
+        registroId: a.registroId,
+        ts: e.ahora,
+        plazoId: a.plazoId,
+        diasExtension: a.dias,
+        motivo: a.motivo,
+        nuevoPrecio: a.nuevoPrecio,
+        autor: a.autor ?? "Gerencia",
+      };
+      const nuevo = cierreDe(p.vence + a.dias * dia);
+      return {
+        ...e,
+        adendas: [ad, ...e.adendas],
+        registros: mapReg(e, a.registroId, (r) => ({
+          ...r,
+          plazos: r.plazos.map((x) => (x.id === a.plazoId ? { ...x, vence: nuevo, movidoPor: ad.id } : x)),
+          valores: a.nuevoPrecio ? { ...r.valores, precioOfertado: String(a.nuevoPrecio) } : r.valores,
+          historial: [
+            ...r.historial,
+            evento(
+              e.ahora,
+              "adenda",
+              `${ad.id} — «${p.rotulo}» se extiende ${a.dias} días, hasta el ${new Date(nuevo).toLocaleDateString("es-AR")}.${a.nuevoPrecio ? ` Nuevo precio USD ${a.nuevoPrecio.toLocaleString("es-AR")}.` : ""} ${a.motivo}`.trim(),
+              ad.autor,
+            ),
+          ],
+        })),
+        avisos: avisar(e, `${ad.id} registrada. El plazo quedó corrido ${a.dias} días.`, "ok"),
+      };
+    }
+
+    case "doc.enviar": {
+      const reg = e.registros.find((r) => r.id === a.registroId);
+      const texto =
+        a.destino === "recepcion"
+          ? `Documento enviado a recepción (${a.direccion}) para imprimir.`
+          : `Documento enviado por correo a ${a.direccion}.`;
+      return {
+        ...e,
+        registros: reg
+          ? mapReg(e, a.registroId, (r) => ({
+              ...r,
+              historial: [...r.historial, evento(e.ahora, "nota", texto, "Asesor")],
+            }))
+          : e.registros,
+        avisos: avisar(e, texto, "ok"),
+      };
+    }
+
+    case "factura.set": {
+      const as = e.asesores.find((x) => x.id === a.asesorId);
+      return {
+        ...e,
+        asesores: e.asesores.map((x) =>
+          x.id === a.asesorId
+            ? { ...x, facturacion: x.facturacion.map((v, i) => (i === a.mes ? Math.max(0, a.monto) : v)) }
+            : x,
+        ),
+        avisos: avisar(e, `Comisión de ${as?.nombre} actualizada.`, "ok"),
+      };
+    }
+
+    case "umbrales.set":
+      return { ...e, umbrales: { ...e.umbrales, ...a.cambio } };
+
+    case "regla.set":
+      return { ...e, reglas: e.reglas.map((r) => (r.id === a.id ? { ...r, ...a.cambio } : r)) };
+
+    case "regla.probar": {
+      const r = e.reglas.find((x) => x.id === a.id);
+      if (!r) return e;
+      const asesor = e.asesores.find((x) => x.id === e.yo)!;
+      const reg = e.registros.find((x) => x.estado === "vigente");
+      const plazo = reg?.plazos.find((p) => !p.cumplido);
+      const destinos: string[] = [];
+      if (r.aAsesor) destinos.push(asesor.email);
+      if (r.aGerencia && !r.gerenciaOculta) destinos.push(EMAIL_GERENCIA);
+      const ocultos = r.aGerencia && r.gerenciaOculta ? [EMAIL_GERENCIA] : [];
+
+      const guiones: Record<Regla["id"], [string, string]> = {
+        previo: [
+          `Vence en ${r.diasAntes} días · ${reg?.id} · ${reg?.direccion}`,
+          `Hola ${asesor.nombre.split(" ")[0]}, en ${r.diasAntes} días vence el plazo «${plazo?.rotulo}» de ${reg?.direccion}. Si ya se firmó una adenda, cargala en el sistema.`,
+        ],
+        vencido: [
+          `Plazo vencido · ${reg?.id} · ${reg?.direccion}`,
+          `El plazo «${plazo?.rotulo}» de ${reg?.direccion} venció hoy. Verificar si hay adenda firmada o si las partes quedaron liberadas.`,
+        ],
+        resumen: [
+          "Resumen semanal de vencimientos",
+          `Esta semana vencen plazos en varias reservas y hay expedientes ya vencidos. Detalle completo en el panel de gerencia.`,
+        ],
+        contacto: [
+          `Contacto pendiente · ${asesor.nombre}`,
+          `Se cumplen ${asesor.topeContactoDias} días sin contacto con ${asesor.nombre}. Este aviso no le llega al asesor.`,
+        ],
+      };
+      const [asunto, cuerpo] = guiones[a.id];
+      const motivo: MotivoCorreo =
+        a.id === "contacto" ? "contactoPrevio" : (a.id as MotivoCorreo);
+      return {
+        ...e,
+        correos: [correo(e, motivo, asunto, cuerpo, destinos, ocultos, reg?.id), ...e.correos],
+        avisos: avisar(e, "Correo de prueba generado. Quedó en la bandeja.", "ok"),
+      };
+    }
+
+    case "contacto.registrar": {
+      const as = e.asesores.find((x) => x.id === a.asesorId);
+      return {
+        ...e,
+        asesores: e.asesores.map((x) => (x.id === a.asesorId ? { ...x, ultimoContacto: e.ahora } : x)),
+        avisos: avisar(e, `Contacto con ${as?.nombre} registrado. El contador vuelve a cero.`, "ok"),
+      };
+    }
+
+    case "contacto.tope":
+      return {
+        ...e,
+        asesores: e.asesores.map((x) =>
+          x.id === a.asesorId ? { ...x, topeContactoDias: Math.max(1, a.dias) } : x,
+        ),
+      };
+
+    case "aviso.cerrar":
+      return { ...e, avisos: e.avisos.filter((x) => x.id !== a.id) };
+
+    default:
+      return e;
+  }
+}
+
+/* ── Contexto ───────────────────────────────────────────────── */
+
+const Ctx = createContext<{ e: Estado; d: (a: Accion) => void } | null>(null);
+
+export function Proveedor({ children }: { children: ReactNode }) {
+  const [e, d] = useReducer(reducir, inicial);
+
+  useEffect(() => {
+    const t = setInterval(() => d({ t: "tic" }), 30_000);
+    return () => clearInterval(t);
+  }, []);
+
+  const v = useMemo(() => ({ e, d }), [e]);
+  return <Ctx.Provider value={v}>{children}</Ctx.Provider>;
+}
+
+export function useApp() {
+  const c = useContext(Ctx);
+  if (!c) throw new Error("useApp fuera del Proveedor");
+  return c;
+}
+
+/* ── Derivados ──────────────────────────────────────────────── */
+
+export type Urgencia = "vencida" | "hoy" | "semana" | "ok";
+
+export function urgenciaDe(vence: number, ahora: number): Urgencia {
+  const hs = (vence - ahora) / 3_600_000;
+  if (hs < 0) return "vencida";
+  if (hs <= 24) return "hoy";
+  if (hs <= 168) return "semana";
+  return "ok";
+}
+
+export interface PlazoVivo {
+  registro: Registro;
+  plazo: Plazo;
+  urgencia: Urgencia;
+  asesor: Asesor;
+}
+
+export type Semaforo = "alto" | "medio" | "bajo";
+
+export interface Proyeccion {
+  asesor: Asesor;
+  /** Acumulado de los últimos 12 meses. */
+  hoy: number;
+  /** Acumulado si no cierra nada nuevo, a 3, 6, 9 y 12 meses. */
+  tramos: { m: number; monto: number; estado: Semaforo }[];
+  estadoHoy: Semaforo;
+  /** Meses hasta caer en Low Performance. null si no cae en el horizonte. */
+  mesesHastaBajo: number | null;
+  /** Todavía no computa para RE/MAX. */
+  nuevo: boolean;
+  /** Deja de ser nuevo en menos de seis meses: conviene mirarlo ya. */
+  porCumplir: boolean;
+  mesesParaComputar: number;
+  faltaParaSostener: number;
+}
+
+export const TRAMOS = [0, 3, 6, 9, 12] as const;
+
+export function useDerivados() {
+  const { e } = useApp();
+
+  return useMemo(() => {
+    const porId = new Map(e.asesores.map((a) => [a.id, a]));
+
+    const plazosVivos: PlazoVivo[] = e.registros
+      .filter((r) => r.estado === "vigente")
+      .flatMap((r) =>
+        r.plazos
+          .filter((p) => !p.cumplido)
+          .map((p) => ({
+            registro: r,
+            plazo: p,
+            urgencia: urgenciaDe(p.vence, e.ahora),
+            asesor: porId.get(r.asesorId)!,
+          })),
+      )
+      .sort((a, b) => a.plazo.vence - b.plazo.vence);
+
+    const vencidos = plazosVivos.filter((p) => p.urgencia === "vencida");
+    const hoy = plazosVivos.filter((p) => p.urgencia === "hoy");
+    const semana = plazosVivos.filter((p) => p.urgencia === "semana");
+
+    /** Primer plazo sin cumplir de cada expediente: lo que define su prioridad. */
+    const proximoDe = (r: Registro): Plazo | undefined =>
+      [...r.plazos].filter((p) => !p.cumplido).sort((a, b) => a.vence - b.vence)[0];
+
+    const expedientes = [...e.registros].sort((a, b) => {
+      const pa = proximoDe(a)?.vence ?? Infinity;
+      const pb = proximoDe(b)?.vence ?? Infinity;
+      return pa - pb;
+    });
+
+    const u = e.umbrales;
+    const califica = (v: number): Semaforo => (v >= u.alto ? "alto" : v >= u.bajo ? "medio" : "bajo");
+    const acumuladoEn = (f: number[], k: number) => f.slice(0, Math.max(0, 12 - k)).reduce((s, x) => s + x, 0);
+
+    const proyecciones: Proyeccion[] = e.asesores.map((a) => {
+      const hoyAcum = acumuladoEn(a.facturacion, 0);
+      const tramos = TRAMOS.map((m) => {
+        const monto = acumuladoEn(a.facturacion, m);
+        return { m, monto, estado: califica(monto) };
+      });
+      let mesesHastaBajo: number | null = null;
+      for (let k = 0; k <= 12; k++) {
+        if (acumuladoEn(a.facturacion, k) < u.bajo) {
+          mesesHastaBajo = k;
+          break;
+        }
+      }
+      const nuevo = a.antiguedadMeses < u.graciaMeses;
+      return {
+        asesor: a,
+        hoy: hoyAcum,
+        tramos,
+        estadoHoy: califica(hoyAcum),
+        mesesHastaBajo,
+        nuevo,
+        porCumplir: nuevo && a.antiguedadMeses >= u.graciaMeses - 6,
+        mesesParaComputar: Math.max(0, u.graciaMeses - a.antiguedadMeses),
+        faltaParaSostener: Math.max(0, u.bajo - acumuladoEn(a.facturacion, 9)),
+      };
+    });
+
+    const computan = proyecciones.filter((p) => !p.nuevo);
+    const seApagan = computan.filter(
+      (p) => p.estadoHoy !== "bajo" && p.mesesHastaBajo !== null && p.mesesHastaBajo <= 6,
+    );
+
+    const contactoVencido = e.asesores.filter(
+      (a) => (e.ahora - a.ultimoContacto) / dia >= a.topeContactoDias,
+    );
+    const contactoPorVencer = e.asesores.filter((a) => {
+      const d = (e.ahora - a.ultimoContacto) / dia;
+      const regla = e.reglas.find((r) => r.id === "contacto")!;
+      return d < a.topeContactoDias && d >= a.topeContactoDias - regla.diasAntes;
+    });
+
+    /** Lo que las reglas activas dispararían en los próximos días. */
+    const reglaPrevio = e.reglas.find((r) => r.id === "previo")!;
+    const cola = plazosVivos
+      .filter((p) => {
+        const dias = (p.plazo.vence - e.ahora) / dia;
+        if (!reglaPrevio.activa) return dias < 0;
+        return dias <= reglaPrevio.diasAntes;
+      })
+      .map((p) => ({
+        ...p,
+        motivo: (p.plazo.vence < e.ahora ? "vencido" : "previo") as "vencido" | "previo",
+      }));
+
+    const facturacion12 = proyecciones.reduce((s, p) => s + p.hoy, 0);
+
+    return {
+      plazosVivos,
+      vencidos,
+      hoy,
+      semana,
+      expedientes,
+      proximoDe,
+      proyecciones,
+      computan,
+      seApagan,
+      contactoVencido,
+      contactoPorVencer,
+      cola,
+      facturacion12,
+    };
+  }, [e]);
+}
+
+export function useAsesor(id: string) {
+  const { e } = useApp();
+  return e.asesores.find((a) => a.id === id);
+}
+
+export const MESES = [
+  "ene",
+  "feb",
+  "mar",
+  "abr",
+  "may",
+  "jun",
+  "jul",
+  "ago",
+  "sep",
+  "oct",
+  "nov",
+  "dic",
+];
+
+/** Etiqueta del mes con desplazamiento hacia atrás desde el corriente. */
+export function rotuloMes(offset: number, ahora: number) {
+  const d = new Date(ahora);
+  d.setMonth(d.getMonth() - offset);
+  return `${MESES[d.getMonth()]} ${String(d.getFullYear()).slice(2)}`;
+}
