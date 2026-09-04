@@ -80,10 +80,6 @@ function VistaPanel() {
   const maxMonto = Math.max(...pipeline.map((p) => p.monto), 1);
   const ranking = [...e.asesores].sort((a, b) => b.comisionMes - a.comisionMes).slice(0, 6);
   const pctObjetivo = Math.round((comisionProyectada / objetivoMes) * 100);
-  const lentos = [...e.asesores]
-    .filter((a) => a.activas > 0)
-    .sort((a, b) => b.minRespuestaProm - a.minRespuestaProm)
-    .slice(0, 4);
 
   return (
     <div className="h-full overflow-y-auto scroll">
@@ -280,7 +276,7 @@ function VistaPanel() {
             <button
               type="button"
               onClick={() => nav.irGerencia("cadencia")}
-              className="w-full flex items-center gap-2.5 px-3.5 py-2.5 border-b border-[var(--linea-suave)] hover:bg-[var(--papel-hundido)]/50 transition-colors text-left"
+              className="w-full flex items-center gap-2.5 px-3.5 py-2.5 hover:bg-[var(--papel-hundido)]/50 transition-colors text-left"
             >
               <span
                 className="grid place-items-center size-6 rounded-[var(--r-xs)] shrink-0"
@@ -302,33 +298,6 @@ function VistaPanel() {
                 </span>
               )}
             </button>
-
-            {lentos[0] && lentos[0].minRespuestaProm > 90 && (
-              <button
-                type="button"
-                onClick={() => nav.abrirAsesor(lentos[0].id)}
-                className="w-full flex items-center gap-2.5 px-3.5 py-2.5 last:border-b-0 hover:bg-[var(--papel-hundido)]/50 transition-colors text-left"
-              >
-                <span
-                  className="grid place-items-center size-6 rounded-[var(--r-xs)] shrink-0"
-                  style={{
-                    background: lentos[0].minRespuestaProm > 120 ? "var(--lacre-tenue)" : "var(--ambar-tenue)",
-                    color: lentos[0].minRespuestaProm > 120 ? "var(--lacre)" : "var(--ambar)",
-                  }}
-                >
-                  <Icono n="reloj" s={13} />
-                </span>
-                <span className="flex-1 min-w-0 text-[12.5px] truncate">
-                  {lentos[0].nombre} responde más lento
-                </span>
-                <span
-                  className="num text-[12.5px] font-semibold"
-                  style={{ color: lentos[0].minRespuestaProm > 120 ? "var(--lacre)" : "var(--ambar)" }}
-                >
-                  {lentos[0].minRespuestaProm}m
-                </span>
-              </button>
-            )}
           </Panel>
 
           {/* Pipeline */}
@@ -593,10 +562,10 @@ function VistaTorre() {
 
 /* ═══ Equipo ════════════════════════════════════════════════ */
 
-/** Semáforo del asesor: conversión y velocidad de respuesta pesan igual. */
+/** Semáforo del asesor: sólo resultado (conversión), no ritmo de contacto con el cliente. */
 function perfDe(a: Asesor) {
-  if (a.tasaConversion >= 63 && a.minRespuestaProm <= 70) return "verde";
-  if (a.tasaConversion < 45 || a.minRespuestaProm > 140) return "rojo";
+  if (a.tasaConversion >= 63) return "verde";
+  if (a.tasaConversion < 45) return "rojo";
   return "ambar";
 }
 
@@ -634,9 +603,8 @@ function FichaAsesor({ id, cerrar }: { id: string; cerrar: () => void }) {
       </header>
 
       <div className="flex-1 overflow-y-auto scroll">
-        <div className="grid grid-cols-3 divide-x divide-[var(--linea)] border-b border-[var(--linea)] bg-[var(--papel-alto)]">
+        <div className="grid grid-cols-2 divide-x divide-[var(--linea)] border-b border-[var(--linea)] bg-[var(--papel-alto)]">
           <Dato rotulo="Conversión" valor={`${a.tasaConversion}%`} color={PERF_COLOR[perf]} />
-          <Dato rotulo="Respuesta prom." valor={`${a.minRespuestaProm} min`} color={a.minRespuestaProm > 60 ? "var(--lacre)" : "var(--verde)"} />
           <Dato rotulo="Comisión mes" valor={usd(a.comisionMes)} />
         </div>
         <div className="grid grid-cols-4 divide-x divide-[var(--linea)] border-b border-[var(--linea)] bg-[var(--papel-alto)]">
@@ -910,7 +878,6 @@ function VistaEquipo() {
               <Th ancho={80} alDer>Cerradas</Th>
               <Th ancho={92} alDer>Ciclo</Th>
               <Th ancho={104}>Conversión</Th>
-              <Th ancho={132}>Respuesta</Th>
               <Th ancho={112} alDer>Comisión</Th>
             </tr>
           </thead>
@@ -949,19 +916,6 @@ function VistaEquipo() {
                       </span>
                       <span className="num text-[12px] font-semibold w-8 text-right" style={{ color: PERF_COLOR[perf] }}>
                         {a.tasaConversion}%
-                      </span>
-                    </span>
-                  </Td>
-                  <Td>
-                    <span className="flex items-center gap-2">
-                      <span className="flex-1">
-                        <Barra
-                          pct={Math.min(100, (a.minRespuestaProm / 330) * 100)}
-                          color={a.minRespuestaProm > 120 ? "var(--lacre)" : a.minRespuestaProm > 45 ? "var(--ambar)" : "var(--verde)"}
-                        />
-                      </span>
-                      <span className="num text-[12px] w-12 text-right text-[var(--tinta-media)]">
-                        {a.minRespuestaProm}m
                       </span>
                     </span>
                   </Td>

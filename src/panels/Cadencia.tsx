@@ -168,7 +168,7 @@ function redactarAviso(
     lineas.push(
       `  ${c.asesor.nombre} · ${c.asesor.rol}`,
       `    ${c.desde} días sin contacto · tope ${c.asesor.topeDias} · ${c.atraso} de atraso`,
-      `    ${c.asesor.activas} operaciones activas · respuesta ${c.asesor.minRespuestaProm} min`,
+      `    ${c.asesor.activas} operaciones activas`,
     );
   }
   if (vencidos.length > 6) lineas.push(`  … y ${vencidos.length - 6} más.`);
