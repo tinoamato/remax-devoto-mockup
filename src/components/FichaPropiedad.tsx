@@ -29,6 +29,18 @@ export function FichaPropiedad() {
   const bajada = Math.round(((p.precio - p.precioInicial) / p.precioInicial) * 100);
   const cerrar = () => nav.abrirProp(null);
   const tasaVisita = p.consultas ? Math.round((p.visitas / p.consultas) * 100) : 0;
+  const stats =
+    nav.modo === "asesor"
+      ? [
+          { v: p.diasEnCartera, l: "días en cartera", alerta: p.diasEnCartera > 120 },
+          { v: p.consultas, l: "consultas" },
+          { v: p.visitas, l: "visitas" },
+          { v: `${tasaVisita}%`, l: "consulta→visita", alerta: tasaVisita < 20 },
+        ]
+      : [
+          { v: p.diasEnCartera, l: "días en cartera", alerta: p.diasEnCartera > 120 },
+          { v: p.visitas, l: "visitas" },
+        ];
 
   return (
     <Cajon cerrar={cerrar} ancho={560}>
@@ -110,13 +122,8 @@ export function FichaPropiedad() {
 
         {/* Rendimiento de la publicación */}
         <section className="bg-[var(--papel-alto)] border border-[var(--linea)] rounded-[var(--r-md)]">
-          <div className="grid grid-cols-4 divide-x divide-[var(--linea-suave)]">
-            {[
-              { v: p.diasEnCartera, l: "días en cartera", alerta: p.diasEnCartera > 120 },
-              { v: p.consultas, l: "consultas" },
-              { v: p.visitas, l: "visitas" },
-              { v: `${tasaVisita}%`, l: "consulta→visita", alerta: tasaVisita < 20 },
-            ].map((s) => (
+          <div className={cn("grid divide-x divide-[var(--linea-suave)]", nav.modo === "asesor" ? "grid-cols-4" : "grid-cols-2")}>
+            {stats.map((s) => (
               <div key={s.l} className="px-2 py-2.5 text-center">
                 <p
                   className="num text-[17px] font-semibold leading-none"

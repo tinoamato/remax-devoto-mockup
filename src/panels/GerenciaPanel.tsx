@@ -983,7 +983,6 @@ function VistaCartera() {
               <Th ancho={120}>Estado</Th>
               <Th ancho={112} alDer>Precio</Th>
               <Th ancho={82} alDer>Días</Th>
-              <Th ancho={124}>Embudo</Th>
               <Th ancho={150}>Asesor</Th>
               <Th ancho={140}>Portales</Th>
             </tr>
@@ -991,7 +990,6 @@ function VistaCartera() {
           <tbody>
             {filas.map((p) => {
               const a = asesorPorId.get(p.asesorId);
-              const conv = p.consultas ? Math.round((p.visitas / p.consultas) * 100) : 0;
               return (
                 <tr
                   key={p.id}
@@ -1033,14 +1031,6 @@ function VistaCartera() {
                       style={{ color: p.diasEnCartera > 120 ? "var(--lacre)" : "var(--tinta-media)" }}
                     >
                       {p.diasEnCartera}
-                    </span>
-                  </Td>
-                  <Td>
-                    <span className="num text-[11.5px] text-[var(--tinta-media)]">
-                      {p.consultas} → {p.visitas}
-                    </span>
-                    <span className="block mt-1">
-                      <Barra pct={conv} color={conv < 20 ? "var(--lacre)" : "var(--verde)"} />
                     </span>
                   </Td>
                   <Td>
