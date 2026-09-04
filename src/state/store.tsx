@@ -8,7 +8,6 @@ import {
   type ReactNode,
 } from "react";
 import {
-  alertas as alertasSeed,
   asesores as asesoresSeed,
   contactos as contactosSeed,
   leads as leadsSeed,
@@ -18,7 +17,6 @@ import {
   tareas as tareasSeed,
   umbralesIniciales,
   type Umbrales,
-  type Alerta,
   type Asesor,
   type CanalContacto,
   type Contacto,
@@ -48,7 +46,6 @@ export interface Estado {
   tareas: Tarea[];
   asesores: Asesor[];
   leads: Lead[];
-  alertas: Alerta[];
   contactos: Contacto[];
   regla: ReglaCadencia;
   umbrales: Umbrales;
@@ -63,7 +60,6 @@ const inicial: Estado = {
   tareas: tareasSeed,
   asesores: asesoresSeed,
   leads: leadsSeed,
-  alertas: alertasSeed,
   contactos: contactosSeed,
   regla: reglaInicial,
   umbrales: umbralesIniciales,
@@ -108,9 +104,6 @@ export type Accion =
   | { t: "asesor.eliminar"; asesorId: string }
   | { t: "lead.asignar"; leadId: string; asesorId: string }
   | { t: "lead.estado"; leadId: string; estado: Lead["estado"] }
-  | { t: "alerta.leer"; id: string }
-  | { t: "alerta.resolver"; id: string }
-  | { t: "alerta.leerTodas" }
   | { t: "contacto.registrar"; asesorId: string; canal: CanalContacto; nota: string }
   | { t: "contacto.tope"; asesorId: string; dias: number }
   | { t: "contacto.regla"; cambio: Partial<ReglaCadencia> }
@@ -310,20 +303,6 @@ function reducer(s: Estado, a: Accion): Estado {
         operaciones: s.operaciones.map((o) =>
           o.id === a.opId ? { ...o, escalada: true, motivoEscalada: a.motivo } : o,
         ),
-        alertas: [
-          {
-            id: nuevoId("AL"),
-            ts: Date.now(),
-            severidad: "alta",
-            titulo: `${op.id} escalada a gerencia`,
-            detalle: a.motivo,
-            refOp: op.id,
-            refAsesor: op.asesorId,
-            leida: false,
-            resuelta: false,
-          },
-          ...s.alertas,
-        ],
       };
       n = anotar(n, a.opId, `Escalada a gerencia — ${a.motivo}`, "Gerencia", "riesgo");
       return conAviso(n, `${op.id} escalada`, "riesgo", s);
@@ -476,20 +455,6 @@ function reducer(s: Estado, a: Accion): Estado {
         leads: s.leads.map((x) => (x.id === a.leadId ? { ...x, estado: a.estado } : x)),
       };
       return conAviso(n, `Consulta marcada como ${a.estado}`, "ok", s);
-    }
-
-    case "alerta.leer":
-      return { ...s, alertas: s.alertas.map((x) => (x.id === a.id ? { ...x, leida: true } : x)) };
-
-    case "alerta.leerTodas":
-      return { ...s, alertas: s.alertas.map((x) => ({ ...x, leida: true })) };
-
-    case "alerta.resolver": {
-      const n: Estado = {
-        ...s,
-        alertas: s.alertas.map((x) => (x.id === a.id ? { ...x, resuelta: true, leida: true } : x)),
-      };
-      return conAviso(n, "Alerta resuelta", "ok", s);
     }
 
     case "contacto.registrar": {
@@ -763,8 +728,6 @@ export function useDerivados() {
       facturacion12: proyecciones.reduce((s, p) => s + p.hoy, 0),
       enRiesgo: opsConRiesgo.filter((x) => x.r >= 30),
       sinAsignar: e.leads.filter((l) => l.estado === "sin asignar"),
-      alertasVivas: e.alertas.filter((a) => !a.resuelta),
-      sinLeer: e.alertas.filter((a) => !a.leida && !a.resuelta).length,
       comisionProyectada: e.operaciones.reduce((s, o) => s + o.comision, 0),
     };
   }, [e]);

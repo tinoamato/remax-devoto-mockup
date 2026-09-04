@@ -7,7 +7,6 @@ export type VistaGerencia =
   | "torre"
   | "equipo"
   | "cartera"
-  | "alertas"
   | "cadencia"
   | "automatizaciones"
   | "facturacion";

@@ -1219,121 +1219,6 @@ function VistaCartera() {
   );
 }
 
-/* ═══ Alertas ═══════════════════════════════════════════════ */
-
-function VistaAlertas() {
-  const { e, d } = useApp();
-  const nav = useNav();
-  const [verResueltas, setVerResueltas] = useState(false);
-  const lista = e.alertas.filter((a) => verResueltas || !a.resuelta);
-  const SEV: Record<string, [string, string, string]> = {
-    alta: ["var(--lacre)", "var(--lacre-tenue)", "var(--lacre-borde)"],
-    media: ["var(--ambar)", "var(--ambar-tenue)", "var(--ambar-borde)"],
-    baja: ["var(--tinta-suave)", "var(--papel-hundido)", "var(--linea)"],
-  };
-
-  return (
-    <div className="h-full flex flex-col overflow-hidden">
-      <div className="shrink-0 flex items-center gap-2 px-4 py-2.5 border-b border-[var(--linea)] bg-[var(--papel-alto)]">
-        <Boton chico ico="tilde" onClick={() => d({ t: "alerta.leerTodas" })}>
-          Marcar todo como leído
-        </Boton>
-        <button
-          type="button"
-          aria-pressed={verResueltas}
-          onClick={() => setVerResueltas((v) => !v)}
-          className={cn(
-            "h-7 px-2.5 rounded-[var(--r-sm)] border text-[12px] transition-colors",
-            verResueltas
-              ? "bg-[var(--papel-hundido)] border-[var(--tinta-suave)]"
-              : "bg-[var(--papel-alto)] border-[var(--linea-fuerte)] text-[var(--tinta-suave)]",
-          )}
-        >
-          Incluir resueltas
-        </button>
-        <span className="num text-[11.5px] text-[var(--tinta-tenue)] ml-auto">{lista.length}</span>
-      </div>
-
-      <div className="flex-1 overflow-y-auto scroll p-4">
-        {lista.length === 0 ? (
-          <Vacio
-            ico="tilde"
-            titulo="Bandeja limpia"
-            detalle="No hay alertas abiertas en la oficina."
-            accion={{ txt: "Ver el panel", al: () => nav.irGerencia("panel") }}
-          />
-        ) : (
-          <ul className="space-y-2 max-w-[900px]">
-            {lista.map((a) => {
-              const [fg, bg, bd] = SEV[a.severidad];
-              return (
-                <li
-                  key={a.id}
-                  className={cn(
-                    "flex items-start gap-3 p-3.5 bg-[var(--papel-alto)] border rounded-[var(--r-md)] transition-opacity",
-                    a.resuelta && "opacity-55",
-                  )}
-                  style={{ borderColor: a.leida ? "var(--linea)" : bd, borderLeft: `3px solid ${fg}` }}
-                >
-                  <span className="mt-[2px] shrink-0" style={{ color: fg }}>
-                    <Icono n={a.severidad === "baja" ? "campana" : "alerta"} s={16} />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {!a.leida && !a.resuelta && (
-                        <span className="size-1.5 rounded-full" style={{ background: fg }} aria-label="Sin leer" />
-                      )}
-                      <p className="text-[13.5px] font-semibold leading-tight">{a.titulo}</p>
-                      <span
-                        className="text-[10px] font-semibold uppercase tracking-wider px-1.5 rounded-[2px]"
-                        style={{ color: fg, background: bg }}
-                      >
-                        {a.severidad}
-                      </span>
-                      {a.resuelta && <Etiqueta t="ok">Resuelta</Etiqueta>}
-                    </div>
-                    <p className="text-[12.5px] text-[var(--tinta-media)] mt-1">{a.detalle}</p>
-                    <p className="text-[11px] text-[var(--tinta-tenue)] mt-1.5">{hace(a.ts, e.ahora)}</p>
-                  </div>
-                  <div className="flex flex-col gap-1.5 shrink-0">
-                    {a.refOp && (
-                      <Boton
-                        chico
-                        onClick={() => {
-                          d({ t: "alerta.leer", id: a.id });
-                          nav.abrirOp(a.refOp!);
-                        }}
-                      >
-                        Abrir {a.refOp}
-                      </Boton>
-                    )}
-                    {a.refAsesor && (
-                      <Boton
-                        chico
-                        onClick={() => {
-                          nav.irGerencia("equipo");
-                          nav.abrirAsesor(a.refAsesor!);
-                        }}
-                      >
-                        Ver asesor
-                      </Boton>
-                    )}
-                    {!a.resuelta && (
-                      <Boton chico ico="tilde" onClick={() => d({ t: "alerta.resolver", id: a.id })}>
-                        Resolver
-                      </Boton>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
-    </div>
-  );
-}
-
 /* ═══ Contenedor ════════════════════════════════════════════ */
 
 export default function GerenciaPanel() {
@@ -1344,7 +1229,6 @@ export default function GerenciaPanel() {
       {nav.vistaGerencia === "torre" && <VistaTorre />}
       {nav.vistaGerencia === "equipo" && <VistaEquipo />}
       {nav.vistaGerencia === "cartera" && <VistaCartera />}
-      {nav.vistaGerencia === "alertas" && <VistaAlertas />}
       {nav.vistaGerencia === "cadencia" && <VistaCadencia />}
       {nav.vistaGerencia === "automatizaciones" && <VistaAutomatizaciones />}
       {nav.vistaGerencia === "facturacion" && <VistaFacturacion />}

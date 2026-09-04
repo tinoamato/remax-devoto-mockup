@@ -30,7 +30,6 @@ const NAV_ASESOR: { id: VistaAsesor; l: string; corto: string; i: NombreIcono }[
 const TITULOS: Record<string, string> = {
   panel: "Panel de gerencia",
   torre: "Torre de control",
-  alertas: "Alertas de la oficina",
   cadencia: "Cadencia de contacto con el equipo",
   automatizaciones: "Automatizaciones de contacto",
   facturacion: "Facturación y proyección por asesor",
@@ -62,7 +61,7 @@ function Marca() {
 function BarraSuperior() {
   const nav = useNav();
   const { e } = useApp();
-  const { sinLeer, sinAsignar } = useDerivados();
+  const { sinAsignar } = useDerivados();
   const yo = e.asesores.find((a) => a.id === e.yo);
 
   return (
@@ -113,20 +112,6 @@ function BarraSuperior() {
         <Icono n="buscar" s={16} />
       </button>
 
-      <button
-        type="button"
-        aria-label={`Alertas${sinLeer ? `, ${sinLeer} sin leer` : ""}`}
-        onClick={() => nav.irGerencia("alertas")}
-        className="relative size-8 grid place-items-center rounded-[var(--r-sm)] text-white/55 hover:text-white hover:bg-white/8 transition-colors"
-      >
-        <Icono n="campana" s={16} />
-        {sinLeer > 0 && (
-          <span className="num absolute -top-0.5 -right-0.5 min-w-[15px] h-[15px] px-1 grid place-items-center rounded-full bg-[#D62B34] text-white text-[9px] font-bold">
-            {sinLeer}
-          </span>
-        )}
-      </button>
-
       {nav.modo === "asesor" && sinAsignar.length > 0 && (
         <button
           type="button"
@@ -149,22 +134,20 @@ function BarraSuperior() {
 
 function Lateral() {
   const nav = useNav();
-  const { sinLeer, sinAsignar, enRiesgo, vencidosContacto, seApagan } = useDerivados();
+  const { sinAsignar, enRiesgo, vencidosContacto, seApagan } = useDerivados();
   const items = nav.modo === "gerencia" ? NAV_GERENCIA : NAV_ASESOR;
   const activa = nav.modo === "gerencia" ? nav.vistaGerencia : nav.vistaAsesor;
 
   const insignia = (id: string) =>
-    id === "alertas"
-      ? sinLeer
-      : id === "consultas"
-        ? sinAsignar.length
-        : id === "torre"
-          ? enRiesgo.length
-          : id === "cadencia"
-            ? vencidosContacto.length
-            : id === "facturacion"
-              ? seApagan.length
-              : 0;
+    id === "consultas"
+      ? sinAsignar.length
+      : id === "torre"
+        ? enRiesgo.length
+        : id === "cadencia"
+          ? vencidosContacto.length
+          : id === "facturacion"
+            ? seApagan.length
+            : 0;
 
   return (
     <nav className="hidden md:flex flex-col w-[188px] shrink-0 border-r border-[var(--linea)] bg-[var(--papel-alto)]">
@@ -228,7 +211,7 @@ function Lateral() {
 
 function NavInferior() {
   const nav = useNav();
-  const { sinLeer, sinAsignar, vencidosContacto } = useDerivados();
+  const { sinAsignar, vencidosContacto } = useDerivados();
   const items = nav.modo === "gerencia" ? NAV_GERENCIA : NAV_ASESOR;
   const activa = nav.modo === "gerencia" ? nav.vistaGerencia : nav.vistaAsesor;
 
@@ -240,13 +223,11 @@ function NavInferior() {
       {items.map((it) => {
         const on = activa === it.id;
         const n =
-          it.id === "alertas"
-            ? sinLeer
-            : it.id === "consultas"
-              ? sinAsignar.length
-              : it.id === "cadencia"
-                ? vencidosContacto.length
-                : 0;
+          it.id === "consultas"
+            ? sinAsignar.length
+            : it.id === "cadencia"
+              ? vencidosContacto.length
+              : 0;
         return (
           <button
             key={it.id}

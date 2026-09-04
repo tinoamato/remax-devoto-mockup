@@ -97,7 +97,6 @@ export function Paleta() {
       { id: "n1", grupo: "Ir a", ico: "tablero", txt: "Panel de gerencia", al: () => nav.irGerencia("panel") },
       { id: "n2", grupo: "Ir a", ico: "torre", txt: "Torre de control", al: () => nav.irGerencia("torre") },
       { id: "n3", grupo: "Ir a", ico: "equipo", txt: "Equipo", al: () => nav.irGerencia("equipo") },
-      { id: "n4", grupo: "Ir a", ico: "campana", txt: "Alertas", al: () => nav.irGerencia("alertas") },
       { id: "n8", grupo: "Ir a", ico: "pulso", txt: "Cadencia de contacto con el equipo", al: () => nav.irGerencia("cadencia") },
       { id: "n9", grupo: "Ir a", ico: "tendencia", txt: "Facturación y proyección por asesor", al: () => nav.irGerencia("facturacion") },
       { id: "n5", grupo: "Ir a", ico: "sol", txt: "Mi día (vista asesor)", al: () => nav.irAsesor("dia") },

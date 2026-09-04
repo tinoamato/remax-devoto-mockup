@@ -180,7 +180,8 @@ function ModalEscalar({ opId, cerrar }: { opId: string; cerrar: () => void }) {
       }
     >
       <p className="text-[12.5px] text-[var(--tinta-media)] mb-3">
-        Se crea una alerta de severidad alta para gerencia y queda asentado en la actividad del expediente.
+        Queda marcada como escalada y asentado en la actividad del expediente — se ve en Cola de riesgo y
+        en Torre de control filtrando por "Escaladas".
       </p>
       <Selector rotulo="Motivo" value={motivo} onChange={(ev) => setMotivo(ev.target.value)}>
         {MOTIVOS.map((m) => (
