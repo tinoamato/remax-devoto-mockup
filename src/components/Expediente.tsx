@@ -89,7 +89,7 @@ function ModalReasignar({ opId, cerrar }: { opId: string; cerrar: () => void }) 
     const t = q.trim().toLowerCase();
     return e.asesores
       .filter((a) => a.id !== op.asesorId && (!t || a.nombre.toLowerCase().includes(t)))
-      .sort((a, b) => a.activas - b.activas || b.tasaConversion - a.tasaConversion)
+      .sort((a, b) => a.activas - b.activas || b.cerradas - a.cerradas)
       .slice(0, 40);
   }, [q, e.asesores, op.asesorId]);
 
@@ -124,16 +124,12 @@ function ModalReasignar({ opId, cerrar }: { opId: string; cerrar: () => void }) 
                 className="num block text-[12px] font-semibold"
                 style={{
                   color:
-                    a.tasaConversion >= 65
-                      ? "var(--verde)"
-                      : a.tasaConversion >= 45
-                        ? "var(--ambar)"
-                        : "var(--lacre)",
+                    a.cerradas >= 9 ? "var(--verde)" : a.cerradas >= 4 ? "var(--ambar)" : "var(--lacre)",
                 }}
               >
-                {a.tasaConversion}%
+                {a.cerradas}
               </span>
-              <span className="block text-[10px] text-[var(--tinta-tenue)]">conv.</span>
+              <span className="block text-[10px] text-[var(--tinta-tenue)]">cerradas</span>
             </span>
           </button>
         ))}

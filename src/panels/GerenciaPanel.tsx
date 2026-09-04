@@ -553,10 +553,10 @@ function VistaTorre() {
 
 /* ═══ Equipo ════════════════════════════════════════════════ */
 
-/** Semáforo del asesor: sólo resultado (conversión), no ritmo de contacto con el cliente. */
+/** Semáforo del asesor: operaciones cerradas, no datos de consultas ni de contacto con el cliente. */
 function perfDe(a: Asesor) {
-  if (a.tasaConversion >= 63) return "verde";
-  if (a.tasaConversion < 45) return "rojo";
+  if (a.cerradas >= 9) return "verde";
+  if (a.cerradas <= 3) return "rojo";
   return "ambar";
 }
 
@@ -594,11 +594,8 @@ function FichaAsesor({ id, cerrar }: { id: string; cerrar: () => void }) {
       </header>
 
       <div className="flex-1 overflow-y-auto scroll">
-        <div className="grid grid-cols-2 divide-x divide-[var(--linea)] border-b border-[var(--linea)] bg-[var(--papel-alto)]">
-          <Dato rotulo="Conversión" valor={`${a.tasaConversion}%`} color={PERF_COLOR[perf]} />
-          <Dato rotulo="Comisión mes" valor={usd(a.comisionMes)} />
-        </div>
-        <div className="grid grid-cols-4 divide-x divide-[var(--linea)] border-b border-[var(--linea)] bg-[var(--papel-alto)]">
+        <div className="grid grid-cols-5 divide-x divide-[var(--linea)] border-b border-[var(--linea)] bg-[var(--papel-alto)]">
+          <Dato rotulo="Comisión mes" valor={usd(a.comisionMes)} color={PERF_COLOR[perf]} />
           <Dato rotulo="Activas" valor={String(a.activas)} />
           <Dato rotulo="Cerradas" valor={String(a.cerradas)} />
           <Dato rotulo="Ciclo prom." valor={`${a.tiempoPromedioDias} d`} />
@@ -868,7 +865,6 @@ function VistaEquipo() {
               <Th ancho={70} alDer>Activas</Th>
               <Th ancho={80} alDer>Cerradas</Th>
               <Th ancho={92} alDer>Ciclo</Th>
-              <Th ancho={104}>Conversión</Th>
               <Th ancho={112} alDer>Comisión</Th>
             </tr>
           </thead>
@@ -899,16 +895,6 @@ function VistaEquipo() {
                   </Td>
                   <Td alDer className="num text-[var(--tinta-media)]">
                     {a.tiempoPromedioDias} d
-                  </Td>
-                  <Td>
-                    <span className="flex items-center gap-2">
-                      <span className="flex-1">
-                        <Barra pct={a.tasaConversion} color={PERF_COLOR[perf]} />
-                      </span>
-                      <span className="num text-[12px] font-semibold w-8 text-right" style={{ color: PERF_COLOR[perf] }}>
-                        {a.tasaConversion}%
-                      </span>
-                    </span>
                   </Td>
                   <Td alDer className="num font-semibold">
                     {usd(a.comisionMes)}

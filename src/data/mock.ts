@@ -552,7 +552,7 @@ export const leads: Lead[] = [
 export const alertas: Alerta[] = [
   { id: "AL-1", ts: h(-0.2), severidad: "alta", titulo: "3 consultas sin asignar hace más de 20 minutos", detalle: "Villa Devoto y Villa del Parque. El estándar de la oficina es 15 minutos.", leida: false, resuelta: false },
   { id: "AL-2", ts: h(-1), severidad: "alta", titulo: "OP-2858 pasó la fecha de boleto sin aviso al cliente", detalle: "Sebastián Molina no registra contacto con las partes desde hace 4 días.", refOp: "OP-2858", refAsesor: "a7", leida: false, resuelta: false },
-  { id: "AL-3", ts: h(-3), severidad: "media", titulo: "Lucas Fernández: conversión del 43%, la más baja de la oficina", detalle: "12 operaciones activas y sólo 5 cerradas en el año.", refAsesor: "a3", leida: false, resuelta: false },
+  { id: "AL-3", ts: h(-3), severidad: "media", titulo: "Lucas Fernández: 12 operaciones activas, sólo 5 cerradas en el año", detalle: "Ciclo promedio de 68 días para cerrar una operación.", refAsesor: "a3", leida: false, resuelta: false },
   { id: "AL-4", ts: h(-8), severidad: "alta", titulo: "OP-2831 vencida hace 2 días", detalle: "Garantía del alquiler sin resolver. El propietario ya consultó dos veces.", refOp: "OP-2831", refAsesor: "a2", leida: true, resuelta: false },
   { id: "AL-5", ts: h(-20), severidad: "media", titulo: "Neuquén 3344: 187 días en cartera", detalle: "2 visitas en 6 meses. Precio 18% arriba del comparable de la zona.", leida: true, resuelta: false },
   { id: "AL-6", ts: h(-30), severidad: "baja", titulo: "Joaquín V. González 1890 quedó sin publicar", detalle: "Operación en financiación pero la ficha se despublicó de todos los portales.", refOp: "OP-2850", leida: true, resuelta: true },
