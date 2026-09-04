@@ -375,8 +375,7 @@ export default function VistaCadencia() {
                       <Th>Asesor</Th>
                       <Th ancho={92}>Tope</Th>
                       <Th ancho={128}>Último contacto</Th>
-                      <Th ancho={150}>Consumo del tope</Th>
-                      <Th ancho={92} alDer>Atraso</Th>
+                      <Th ancho={110} alDer>Atraso</Th>
                       <Th ancho={112} alDer>Acción</Th>
                     </tr>
                   </thead>
@@ -429,12 +428,6 @@ export default function VistaCadencia() {
                           <span className="num text-[12.5px] font-semibold">hace {c.desde} d</span>
                           <span className="block text-[11px] text-[var(--tinta-tenue)]">
                             {fechaCorta(c.asesor.ultimoContacto)}
-                          </span>
-                        </Td>
-                        <Td>
-                          <Barra pct={Math.min(100, c.consumo * 100)} color={COLOR[c.estado]} />
-                          <span className="block text-[11px] text-[var(--tinta-tenue)] mt-1">
-                            {Math.round(c.consumo * 100)}% de {c.asesor.topeDias} días
                           </span>
                         </Td>
                         <Td alDer>
@@ -498,41 +491,6 @@ export default function VistaCadencia() {
                   Los topes cortos concentran a los asesores nuevos: son los que más se escapan.
                 </p>
               </div>
-            </Panel>
-
-            <Panel>
-              <CabezaPanel
-                titulo="A quién llamar hoy"
-                extra={<Etiqueta t="vencida">{vencidosContacto.length}</Etiqueta>}
-              />
-              {vencidosContacto.length === 0 ? (
-                <Vacio ico="tilde" titulo="Nadie pasado de tope" detalle="La oficina está al día." />
-              ) : (
-                vencidosContacto.slice(0, 6).map((c) => (
-                  <div
-                    key={c.asesor.id}
-                    className="flex items-center gap-2.5 px-3.5 py-2 border-b border-[var(--linea-suave)] last:border-b-0"
-                  >
-                    <Inicial txt={c.asesor.iniciales} s={24} />
-                    <button
-                      type="button"
-                      onClick={() => nav.abrirAsesor(c.asesor.id)}
-                      className="min-w-0 flex-1 text-left"
-                    >
-                      <span className="block text-[12.5px] truncate">{c.asesor.nombre}</span>
-                      <span className="block text-[11px] text-[var(--tinta-tenue)]">
-                        hace {c.desde} d · tope {c.asesor.topeDias}
-                      </span>
-                    </button>
-                    <span className="num text-[12.5px] font-semibold" style={{ color: "var(--lacre)" }}>
-                      +{c.atraso}
-                    </span>
-                    <Boton chico ico="telefono" onClick={() => setRegistrando(c.asesor.id)}>
-                      Contacté
-                    </Boton>
-                  </div>
-                ))
-              )}
             </Panel>
           </div>
         </div>
