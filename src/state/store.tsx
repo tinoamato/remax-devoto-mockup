@@ -28,6 +28,7 @@ import {
   type Propiedad,
   type ReglaCadencia,
   type Tarea,
+  type TipoOp,
   type Urgencia,
 } from "../data/mock";
 
@@ -89,6 +90,22 @@ export type Accion =
   | { t: "op.nota"; opId: string; texto: string }
   | { t: "prop.precio"; propId: string; precio: number }
   | { t: "prop.portal"; propId: string; portal: string }
+  | {
+      t: "prop.crear";
+      datos: {
+        direccion: string;
+        barrio: string;
+        tipo: TipoOp;
+        precio: number;
+        ambientes: number;
+        superficie: number;
+        asesorId: string;
+        garage: boolean;
+      };
+    }
+  | { t: "prop.eliminar"; propId: string }
+  | { t: "asesor.crear"; datos: { nombre: string; rol: string; topeDias: number } }
+  | { t: "asesor.eliminar"; asesorId: string }
   | { t: "lead.asignar"; leadId: string; asesorId: string }
   | { t: "lead.estado"; leadId: string; estado: Lead["estado"] }
   | { t: "alerta.leer"; id: string }
@@ -368,6 +385,77 @@ function reducer(s: Estado, a: Accion): Estado {
         ),
       };
       return conAviso(n, `${activo ? "Despublicada de" : "Publicada en"} ${a.portal}`, activo ? "neutro" : "ok", s);
+    }
+
+    case "prop.crear": {
+      const nueva: Propiedad = {
+        id: nuevoId("PROP"),
+        direccion: a.datos.direccion.trim(),
+        barrio: a.datos.barrio.trim(),
+        tipo: a.datos.tipo,
+        precio: a.datos.precio,
+        precioInicial: a.datos.precio,
+        ambientes: a.datos.ambientes,
+        superficie: a.datos.superficie,
+        estado: "Disponible",
+        asesorId: a.datos.asesorId,
+        publicada: false,
+        portales: [],
+        antiguedad: 0,
+        garage: a.datos.garage,
+        descripcion: "",
+        visitas: 0,
+        consultas: 0,
+        diasEnCartera: 0,
+      };
+      const n: Estado = { ...s, propiedades: [nueva, ...s.propiedades] };
+      return conAviso(n, `Propiedad cargada: ${nueva.direccion}`, "ok", s);
+    }
+
+    case "prop.eliminar": {
+      const p = s.propiedades.find((x) => x.id === a.propId);
+      if (!p) return s;
+      if (p.operacionId) {
+        return conAviso(s, "No podés eliminar una propiedad con una operación vinculada", "riesgo");
+      }
+      const n: Estado = { ...s, propiedades: s.propiedades.filter((x) => x.id !== a.propId) };
+      return conAviso(n, `Propiedad eliminada: ${p.direccion}`, "neutro", s);
+    }
+
+    case "asesor.crear": {
+      const nombre = a.datos.nombre.trim();
+      const nuevo: Asesor = {
+        id: nuevoId("a"),
+        nombre,
+        iniciales: nombre.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase(),
+        rol: a.datos.rol,
+        activas: 0,
+        cerradas: 0,
+        tasaConversion: 50,
+        tiempoPromedioDias: 45,
+        comisionMes: 0,
+        minRespuestaProm: 30,
+        captacionesMes: 0,
+        topeDias: a.datos.topeDias,
+        ultimoContacto: Date.now(),
+        facturacionMensual: Array(12).fill(0),
+      };
+      const n: Estado = { ...s, asesores: [...s.asesores, nuevo] };
+      return conAviso(n, `Asesor agregado: ${nuevo.nombre}`, "ok", s);
+    }
+
+    case "asesor.eliminar": {
+      const asesor = s.asesores.find((x) => x.id === a.asesorId);
+      if (!asesor) return s;
+      if (asesor.activas > 0) {
+        return conAviso(
+          s,
+          `${asesor.nombre} tiene ${asesor.activas} operaciones activas — reasignalas antes de eliminarlo`,
+          "riesgo",
+        );
+      }
+      const n: Estado = { ...s, asesores: s.asesores.filter((x) => x.id !== a.asesorId) };
+      return conAviso(n, `Asesor eliminado: ${asesor.nombre}`, "neutro", s);
     }
 
     case "lead.asignar": {

@@ -235,6 +235,20 @@ export function FichaPropiedad() {
             <span className="text-[11px] text-[var(--tinta-tenue)] ml-auto">Asesor a cargo</span>
           </div>
         </section>
+
+        {nav.modo === "gerencia" && (
+          <Boton
+            tono="peligro"
+            ico="cruz"
+            className="w-full"
+            onClick={() => {
+              d({ t: "prop.eliminar", propId: p.id });
+              if (!p.operacionId) cerrar();
+            }}
+          >
+            Eliminar propiedad
+          </Boton>
+        )}
       </div>
     </Cajon>
   );

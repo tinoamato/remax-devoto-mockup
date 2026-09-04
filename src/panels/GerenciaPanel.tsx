@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { BLOQUES, ETAPAS, objetivoMes, type Asesor } from "../data/mock";
+import { BLOQUES, ETAPAS, objetivoMes, type Asesor, type TipoOp } from "../data/mock";
 import { cadenciaDe, proyeccionDe, riesgo, urgencia, useApp, useDerivados } from "../state/store";
 import { useNav } from "../state/nav";
 import { Icono } from "../lib/icons";
@@ -13,12 +13,14 @@ import {
   Buscador,
   Cajon,
   CabezaPanel,
+  Campo,
   Cuenta,
   Etiqueta,
   EtiquetaUrgencia,
   Inicial,
   ItemMenu,
   Menu,
+  Modal,
   Panel,
   Riesgo,
   Selector,
@@ -563,7 +565,7 @@ function perfDe(a: Asesor) {
 const PERF_COLOR = { verde: "var(--verde)", ambar: "var(--ambar)", rojo: "var(--lacre)" } as const;
 
 function FichaAsesor({ id, cerrar }: { id: string; cerrar: () => void }) {
-  const { e } = useApp();
+  const { e, d } = useApp();
   const nav = useNav();
   const [registrando, setRegistrando] = useState(false);
   const a = e.asesores.find((x) => x.id === id);
@@ -784,10 +786,78 @@ function FichaAsesor({ id, cerrar }: { id: string; cerrar: () => void }) {
             ))
           )}
         </Panel>
+
+        {nav.modo === "gerencia" && (
+          <div className="m-3">
+            <Boton
+              tono="peligro"
+              ico="cruz"
+              className="w-full"
+              onClick={() => {
+                d({ t: "asesor.eliminar", asesorId: a.id });
+                if (a.activas === 0) cerrar();
+              }}
+            >
+              Eliminar asesor
+            </Boton>
+          </div>
+        )}
       </div>
 
       {registrando && <ModalContacto asesorId={a.id} cerrar={() => setRegistrando(false)} />}
     </Cajon>
+  );
+}
+
+const ROLES_ASESOR = ["Asesor", "Asesora", "Asesor Junior", "Asesora Junior", "Asesor Senior", "Asesora Senior"];
+const TOPES_ASESOR = [7, 15, 30, 45, 60];
+
+function ModalNuevoAsesor({ cerrar }: { cerrar: () => void }) {
+  const { d } = useApp();
+  const [nombre, setNombre] = useState("");
+  const [rol, setRol] = useState(ROLES_ASESOR[0]);
+  const [topeDias, setTopeDias] = useState(30);
+
+  const valido = nombre.trim().length > 2;
+
+  const guardar = () => {
+    if (!valido) return;
+    d({ t: "asesor.crear", datos: { nombre: nombre.trim(), rol, topeDias } });
+    cerrar();
+  };
+
+  return (
+    <Modal
+      titulo="Nuevo asesor"
+      cerrar={cerrar}
+      ancho={400}
+      pie={
+        <>
+          <Boton onClick={cerrar}>Cancelar</Boton>
+          <Boton tono="primario" disabled={!valido} onClick={guardar}>
+            Agregar
+          </Boton>
+        </>
+      }
+    >
+      <div className="space-y-3">
+        <Campo rotulo="Nombre y apellido" value={nombre} onChange={(ev) => setNombre(ev.target.value)} placeholder="Ana Gómez" />
+        <div className="grid grid-cols-2 gap-2">
+          <Selector rotulo="Rol" value={rol} onChange={(ev) => setRol(ev.target.value)}>
+            {ROLES_ASESOR.map((r) => (
+              <option key={r}>{r}</option>
+            ))}
+          </Selector>
+          <Selector rotulo="Tope de contacto" value={topeDias} onChange={(ev) => setTopeDias(Number(ev.target.value))}>
+            {TOPES_ASESOR.map((t) => (
+              <option key={t} value={t}>
+                cada {t} días
+              </option>
+            ))}
+          </Selector>
+        </div>
+      </div>
+    </Modal>
   );
 }
 
@@ -797,6 +867,7 @@ function VistaEquipo() {
   const [q, setQ] = useState("");
   const [fPerf, setFPerf] = useState("");
   const [pag, setPag] = useState(0);
+  const [nuevo, setNuevo] = useState(false);
   const porPag = 14;
 
   const filtrados = useMemo(() => {
@@ -855,6 +926,9 @@ function VistaEquipo() {
           hint="Buscar asesor…"
           className="w-[220px] ml-auto"
         />
+        <Boton chico tono="primario" ico="mas" onClick={() => setNuevo(true)}>
+          Nuevo asesor
+        </Boton>
       </div>
 
       <div className="flex-1 overflow-auto scroll">
@@ -919,11 +993,83 @@ function VistaEquipo() {
           </Boton>
         </div>
       </div>
+
+      {nuevo && <ModalNuevoAsesor cerrar={() => setNuevo(false)} />}
     </div>
   );
 }
 
 /* ═══ Cartera ═══════════════════════════════════════════════ */
+
+function ModalNuevaPropiedad({ cerrar }: { cerrar: () => void }) {
+  const { e, d } = useApp();
+  const [direccion, setDireccion] = useState("");
+  const [barrio, setBarrio] = useState("");
+  const [tipo, setTipo] = useState<TipoOp>("Venta");
+  const [precio, setPrecio] = useState("");
+  const [ambientes, setAmbientes] = useState("2");
+  const [superficie, setSuperficie] = useState("");
+  const [asesorId, setAsesorId] = useState(e.asesores[0]?.id ?? "");
+
+  const valido = direccion.trim() && barrio.trim() && Number(precio) > 0 && asesorId;
+
+  const guardar = () => {
+    if (!valido) return;
+    d({
+      t: "prop.crear",
+      datos: {
+        direccion: direccion.trim(),
+        barrio: barrio.trim(),
+        tipo,
+        precio: Number(precio),
+        ambientes: Number(ambientes) || 1,
+        superficie: Number(superficie) || 0,
+        asesorId,
+        garage: false,
+      },
+    });
+    cerrar();
+  };
+
+  return (
+    <Modal
+      titulo="Nueva propiedad"
+      cerrar={cerrar}
+      ancho={440}
+      pie={
+        <>
+          <Boton onClick={cerrar}>Cancelar</Boton>
+          <Boton tono="primario" disabled={!valido} onClick={guardar}>
+            Cargar
+          </Boton>
+        </>
+      }
+    >
+      <div className="space-y-3">
+        <Campo rotulo="Dirección" value={direccion} onChange={(ev) => setDireccion(ev.target.value)} placeholder="Av. Rivadavia 1234, 2°A" />
+        <div className="grid grid-cols-2 gap-2">
+          <Campo rotulo="Barrio" value={barrio} onChange={(ev) => setBarrio(ev.target.value)} placeholder="Villa Devoto" />
+          <Selector rotulo="Tipo" value={tipo} onChange={(ev) => setTipo(ev.target.value as TipoOp)}>
+            <option value="Venta">Venta</option>
+            <option value="Alquiler">Alquiler</option>
+          </Selector>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          <Campo rotulo="Precio" type="number" value={precio} onChange={(ev) => setPrecio(ev.target.value)} placeholder="150000" />
+          <Campo rotulo="Ambientes" type="number" value={ambientes} onChange={(ev) => setAmbientes(ev.target.value)} />
+          <Campo rotulo="m²" type="number" value={superficie} onChange={(ev) => setSuperficie(ev.target.value)} />
+        </div>
+        <Selector rotulo="Asesor a cargo" value={asesorId} onChange={(ev) => setAsesorId(ev.target.value)}>
+          {e.asesores.map((a) => (
+            <option key={a.id} value={a.id}>
+              {a.nombre}
+            </option>
+          ))}
+        </Selector>
+      </div>
+    </Modal>
+  );
+}
 
 function VistaCartera() {
   const { e } = useApp();
@@ -932,6 +1078,7 @@ function VistaCartera() {
   const [q, setQ] = useState("");
   const [fEstado, setFEstado] = useState("");
   const [fTipo, setFTipo] = useState("");
+  const [nueva, setNueva] = useState(false);
 
   const filas = useMemo(() => {
     const t = q.trim().toLowerCase();
@@ -973,6 +1120,9 @@ function VistaCartera() {
           </span>
         )}
         <span className="num text-[11.5px] text-[var(--tinta-tenue)] ml-auto">{filas.length}</span>
+        <Boton chico tono="primario" ico="mas" onClick={() => setNueva(true)}>
+          Nueva propiedad
+        </Boton>
       </div>
 
       <div className="flex-1 overflow-auto scroll">
@@ -1063,6 +1213,8 @@ function VistaCartera() {
           </tbody>
         </table>
       </div>
+
+      {nueva && <ModalNuevaPropiedad cerrar={() => setNueva(false)} />}
     </div>
   );
 }
