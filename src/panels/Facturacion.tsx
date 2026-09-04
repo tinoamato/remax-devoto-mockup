@@ -194,8 +194,7 @@ export default function VistaFacturacion() {
       <TiraUmbrales />
 
       <div className="flex-1 min-h-0 overflow-y-auto scroll p-4">
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)] items-start">
-          <Panel className="min-w-0">
+        <Panel className="min-w-0">
             <CabezaPanel
               titulo="Proyección por asesor"
               cuenta={filas.length}
@@ -347,47 +346,7 @@ export default function VistaFacturacion() {
                 </table>
               )}
             </div>
-          </Panel>
-
-          <div className="space-y-4 min-w-0">
-            {/* Cómo queda la oficina */}
-            <Panel>
-              <CabezaPanel titulo="La oficina, hoy y a 9 meses" />
-              <div className="p-3.5 space-y-3">
-                {(
-                  [
-                    ["hoy", "Hoy"],
-                    ["m9", "A 9 meses sin cerrar nada"],
-                  ] as const
-                ).map(([cuando, rotulo]) => (
-                  <div key={cuando}>
-                    <p className="text-[11.5px] text-[var(--tinta-suave)] mb-1.5">{rotulo}</p>
-                    <div className="flex h-6 rounded-[2px] overflow-hidden border border-[var(--linea)]">
-                      {(["verde", "amarillo", "rojo"] as const).map((s) => {
-                        const n = cuenta(s, cuando);
-                        if (!n) return null;
-                        return (
-                          <span
-                            key={s}
-                            className="num flex items-center justify-center text-[10.5px] font-semibold text-white"
-                            style={{ width: `${(n / total) * 100}%`, background: COLOR_SEM[s] }}
-                            title={`${n} en ${s}`}
-                          >
-                            {n}
-                          </span>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-                <p className="text-[11.5px] text-[var(--tinta-tenue)] pt-2 border-t border-[var(--linea-suave)]">
-                  No es un pronóstico: es lo que pasa si nadie cierra nada. Sirve para saber cuánto hay
-                  que vender sólo para quedar igual.
-                </p>
-              </div>
-            </Panel>
-          </div>
-        </div>
+        </Panel>
       </div>
     </div>
   );
