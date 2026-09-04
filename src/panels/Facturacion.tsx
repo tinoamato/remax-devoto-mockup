@@ -350,44 +350,6 @@ export default function VistaFacturacion() {
           </Panel>
 
           <div className="space-y-4 min-w-0">
-            {/* El punto ciego */}
-            <Panel className={seApagan.length ? "border-[var(--lacre-borde)]" : undefined}>
-              <CabezaPanel titulo="A quién ver antes de que sea tarde" cuenta={seApagan.length} />
-              {seApagan.length === 0 ? (
-                <Vacio ico="tilde" titulo="Nadie toca fondo antes de los 6 meses" />
-              ) : (
-                <>
-                  <p className="px-3.5 py-2 text-[12px] text-[var(--tinta-suave)] border-b border-[var(--linea-suave)]">
-                    Hoy no están en rojo, pero su número se apoya en ventas que están por salirse de la
-                    ventana. Son los del próximo 1 a 1.
-                  </p>
-                  {seApagan.slice(0, 7).map((p) => (
-                    <button
-                      key={p.asesor.id}
-                      type="button"
-                      onClick={() => nav.abrirAsesor(p.asesor.id)}
-                      className="w-full flex items-center gap-2.5 px-3.5 py-2.5 border-b border-[var(--linea-suave)] last:border-b-0 hover:bg-[var(--papel-hundido)]/50 transition-colors text-left"
-                    >
-                      <span
-                        className="num shrink-0 w-9 text-center text-[13px] font-semibold"
-                        style={{ color: (p.mesesHastaRojo ?? 9) <= 3 ? "var(--lacre)" : "var(--ambar)" }}
-                      >
-                        {p.mesesHastaRojo}m
-                      </span>
-                      <Inicial txt={p.asesor.iniciales} s={24} />
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-[12.5px] truncate">{p.asesor.nombre}</span>
-                        <span className="num block text-[11px] text-[var(--tinta-tenue)]">
-                          {usd(p.hoy)} → {usd(p.m9)}
-                        </span>
-                      </span>
-                      <Trayectoria p={p} alto={16} />
-                    </button>
-                  ))}
-                </>
-              )}
-            </Panel>
-
             {/* Cómo queda la oficina */}
             <Panel>
               <CabezaPanel titulo="La oficina, hoy y a 9 meses" />
