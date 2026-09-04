@@ -42,26 +42,6 @@ export function Trayectoria({ p, alto = 22 }: { p: Proyeccion; alto?: number }) 
   );
 }
 
-/** Barras de los 12 meses, el más reciente a la izquierda. */
-function Columnas({ meses, alto = 44 }: { meses: number[]; alto?: number }) {
-  const max = Math.max(...meses, 1);
-  return (
-    <span className="flex items-end gap-[3px]" style={{ height: alto }} aria-hidden="true">
-      {meses.map((m, i) => (
-        <span
-          key={i}
-          className="flex-1 rounded-[1px] min-w-[4px]"
-          style={{
-            height: `${Math.max(4, (m / max) * 100)}%`,
-            background: i < 3 ? "var(--sello)" : i < 6 ? "var(--sello-borde)" : "var(--linea-fuerte)",
-          }}
-          title={`Mes ${i === 0 ? "en curso" : `-${i}`}: ${usd(m)}`}
-        />
-      ))}
-    </span>
-  );
-}
-
 /* ── Los umbrales, escritos como los lee el gerente ─────────── */
 
 function TiraUmbrales() {
@@ -246,16 +226,13 @@ export default function VistaFacturacion() {
                   accion={{ txt: "Limpiar filtros", al: () => { setQ(""); setFiltro(""); } }}
                 />
               ) : (
-                <table className="w-full min-w-[820px] border-collapse">
+                <table className="w-full min-w-[620px] border-collapse">
                   <thead>
                     <tr>
-                      <Th ancho={104}>Cae a rojo</Th>
+                      <Th ancho={110}>Cae a rojo</Th>
                       <Th>Asesor</Th>
-                      <Th ancho={130} alDer>12 meses</Th>
-                      <Th ancho={100}>Últimos 12</Th>
-                      <Th ancho={136}>Trayectoria</Th>
-                      <Th ancho={120} alDer>A 9 meses</Th>
-                      <Th ancho={124} alDer>Para no caer</Th>
+                      <Th ancho={140} alDer>12 meses</Th>
+                      <Th ancho={140} alDer>Para no caer</Th>
                     </tr>
                   </thead>
                   <tbody>
@@ -305,23 +282,6 @@ export default function VistaFacturacion() {
                           <span className="num text-[13px] font-semibold">{usd(p.hoy)}</span>
                           <span className="block mt-1">
                             <Etiqueta t={ETIQ_SEM[p.estadoHoy]}>{p.estadoHoy}</Etiqueta>
-                          </span>
-                        </Td>
-                        <Td>
-                          <Columnas meses={p.asesor.facturacionMensual} alto={30} />
-                        </Td>
-                        <Td>
-                          <Trayectoria p={p} />
-                        </Td>
-                        <Td alDer>
-                          <span
-                            className="num text-[13px] font-semibold"
-                            style={{ color: COLOR_SEM[p.estado9] }}
-                          >
-                            {usd(p.m9)}
-                          </span>
-                          <span className="block text-[11px] text-[var(--tinta-tenue)] mt-0.5">
-                            −{Math.round(p.caida * 100)}%
                           </span>
                         </Td>
                         <Td alDer>
