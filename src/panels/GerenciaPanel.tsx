@@ -19,7 +19,6 @@ import {
   ItemMenu,
   Menu,
   Panel,
-  RielEtapas,
   Riesgo,
   Selector,
   Td,
@@ -464,11 +463,8 @@ function VistaTorre() {
                         <span className="text-[12px] truncate">{a?.nombre}</span>
                       </span>
                     </Td>
-                    <Td>
-                      <RielEtapas etapas={ETAPAS} actual={op.etapa} compacto />
-                      <span className="block text-[11px] text-[var(--tinta-tenue)] mt-0.5">
-                        {op.etapa + 1}/13 · {ETAPAS[op.etapa]}
-                      </span>
+                    <Td className="text-[var(--tinta-media)]">
+                      {op.etapa + 1}/13 · {ETAPAS[op.etapa]}
                     </Td>
                     <Td alDer className="num font-semibold">
                       {usd(op.precio)}
@@ -480,15 +476,9 @@ function VistaTorre() {
                       </span>
                     </Td>
                     <Td>
-                      <Barra
-                        pct={(ok / op.docs.length) * 100}
-                        color={crit ? "var(--ambar)" : "var(--verde)"}
-                      />
-                      <span className="block text-[11px] text-[var(--tinta-tenue)] mt-1">
-                        {ok}/{op.docs.length}
-                        {crit > 0 && (
-                          <span style={{ color: "var(--lacre)" }}> · {crit} crít.</span>
-                        )}
+                      <span className={crit > 0 ? undefined : "text-[var(--tinta-media)]"} style={crit > 0 ? { color: "var(--lacre)" } : undefined}>
+                        {ok}/{op.docs.length} doc.
+                        {crit > 0 && ` · ${crit} crít.`}
                       </span>
                     </Td>
                     <Td alDer>
