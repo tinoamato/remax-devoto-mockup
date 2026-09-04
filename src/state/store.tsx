@@ -98,7 +98,7 @@ export type Accion =
   | { t: "contacto.tope"; asesorId: string; dias: number }
   | { t: "contacto.regla"; cambio: Partial<ReglaCadencia> }
   | { t: "contacto.avisarAsesor"; asesorId: string }
-  | { t: "contacto.probarAutomatizacion"; tipo: "previo" | "vencido"; alcance: number }
+  | { t: "contacto.probarAutomatizacion"; tipo: "previo" | "vencido" | "resumen"; alcance: number }
   | { t: "umbrales.set"; cambio: Partial<Umbrales> }
   | { t: "aviso.cerrar"; id: number }
   | { t: "aviso.deshacer"; id: number };
@@ -446,21 +446,19 @@ function reducer(s: Estado, a: Accion): Estado {
 
     case "contacto.probarAutomatizacion": {
       const ahora = Date.now();
-      const n: Estado = {
-        ...s,
-        regla:
-          a.tipo === "previo"
-            ? { ...s.regla, ultimoEnvioPrevio: ahora }
-            : { ...s.regla, ultimoEnvioVencido: ahora },
-      };
-      return conAviso(
-        n,
+      const regla =
+        a.tipo === "previo"
+          ? { ...s.regla, ultimoEnvioPrevio: ahora }
+          : a.tipo === "vencido"
+            ? { ...s.regla, ultimoEnvioVencido: ahora }
+            : { ...s.regla, ultimoEnvioResumen: ahora };
+      const texto =
         a.tipo === "previo"
           ? `Aviso previo enviado a ${a.alcance} asesores`
-          : `Aviso de vencido enviado a ${a.alcance} asesores`,
-        "ok",
-        s,
-      );
+          : a.tipo === "vencido"
+            ? `Aviso de vencido enviado a ${a.alcance} asesores`
+            : "Resumen enviado a gerencia";
+      return conAviso({ ...s, regla }, texto, "ok", s);
     }
 
     case "umbrales.set":

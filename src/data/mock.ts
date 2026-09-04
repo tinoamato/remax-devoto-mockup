@@ -135,7 +135,9 @@ export interface Contacto {
   nota: string;
 }
 
-/** Automatizaciones de contacto: avisos por correo directo a cada asesor. */
+export type FrecuenciaResumen = "diario" | "semanal";
+
+/** Automatizaciones de contacto: avisos por correo, a cada asesor o a gerencia. */
 export interface ReglaCadencia {
   /** Días de anticipación del aviso previo. */
   margenAviso: number;
@@ -144,6 +146,10 @@ export interface ReglaCadencia {
   avisoVencidoActivo: boolean;
   ultimoEnvioPrevio: number | null;
   ultimoEnvioVencido: number | null;
+  resumenActivo: boolean;
+  resumenFrecuencia: FrecuenciaResumen;
+  resumenHora: string;
+  ultimoEnvioResumen: number | null;
 }
 
 export const reglaInicial: ReglaCadencia = {
@@ -153,6 +159,10 @@ export const reglaInicial: ReglaCadencia = {
   avisoVencidoActivo: true,
   ultimoEnvioPrevio: null,
   ultimoEnvioVencido: null,
+  resumenActivo: true,
+  resumenFrecuencia: "semanal",
+  resumenHora: "08:00",
+  ultimoEnvioResumen: null,
 };
 
 export interface Lead {
