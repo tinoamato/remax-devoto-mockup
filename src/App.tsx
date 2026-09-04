@@ -1,3 +1,4 @@
+// MVP deployment v1
 import { Expediente } from "./components/Expediente";
 import { FichaPropiedad } from "./components/FichaPropiedad";
 import { Avisos, Paleta, useAtajoPaleta } from "./components/Sistema";
