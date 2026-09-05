@@ -61,11 +61,12 @@ function EditarVigencia({
   /** El último documento cargado del expediente: la reserva o su última adenda. */
   ultimo: string;
   cerrar: () => void;
-  confirmar: (dias: number, motivo: string, via: Via) => void;
+  confirmar: (dias: number, motivo: string, via: Via, nuevoPrecio?: number) => void;
 }) {
   const [dias, setDias] = useState("30");
   const [motivo, setMotivo] = useState("");
   const [via, setVia] = useState<Via>("adenda");
+  const [precio, setPrecio] = useState("");
   const n = Number(dias) || 0;
   // La adenda es una prórroga y corre desde su firma; lo demás corrige el vencimiento.
   const base = via === "adenda" ? Date.now() : plazo.vence;
@@ -82,7 +83,11 @@ function EditarVigencia({
       pie={
         <>
           <Boton onClick={cerrar}>Cancelar</Boton>
-          <Boton tono="primario" onClick={() => confirmar(n, motivo.trim(), via)} disabled={n === 0}>
+          <Boton
+            tono="primario"
+            onClick={() => confirmar(n, motivo.trim(), via, via === "adenda" ? Number(precio) || undefined : undefined)}
+            disabled={n === 0}
+          >
             {via === "adenda" ? "Registrar adenda" : via === "pedir" ? "Mover y avisar" : "Guardar la fecha"}
           </Boton>
         </>
@@ -175,6 +180,24 @@ function EditarVigencia({
         </div>
       </fieldset>
 
+      {via === "adenda" && (
+        <label className="block mt-3">
+          <span className="rotulo block mb-1">¿Cambia el precio pactado? (opcional)</span>
+          <span className="relative block">
+            <input
+              value={precio}
+              onChange={(ev) => setPrecio(ev.target.value)}
+              inputMode="numeric"
+              placeholder="Dejalo vacío si el precio no se toca"
+              className="num w-full h-9 pl-2.5 pr-12 rounded-[var(--r-sm)] border border-[var(--linea-fuerte)] bg-[var(--papel-hundido)] text-[13px] outline-none focus:bg-[var(--papel-alto)] focus:border-[var(--sello)]"
+            />
+            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] text-[var(--tinta-tenue)] pointer-events-none">
+              USD
+            </span>
+          </span>
+        </label>
+      )}
+
       <label className="block mt-3">
         <span className="rotulo block mb-1">Motivo</span>
         <textarea
@@ -256,6 +279,18 @@ export default function Expediente() {
                 >
                   La operación se cayó
                 </ItemMenu>
+                {r.estado !== "eliminado" && (
+                  <ItemMenu
+                    ico="cruz"
+                    peligro
+                    onClick={() => {
+                      d({ t: "registro.estado", registroId: r.id, estado: "eliminado" });
+                      cerrarMenu();
+                    }}
+                  >
+                    Eliminar (baja lógica)
+                  </ItemMenu>
+                )}
                 {r.estado !== "vigente" && (
                   <ItemMenu
                     ico="refrescar"
@@ -278,11 +313,13 @@ export default function Expediente() {
             <Inicial txt={asesor.iniciales} s={22} />
             <span className="text-[12.5px]">{asesor.nombre}</span>
           </span>
+          {!r.aprobado && <Etiqueta t="hoy">Nueva</Etiqueta>}
+          {r.bajaPedida && <Etiqueta t="vencida">Baja pedida</Etiqueta>}
           {r.estado === "vigente" ? (
             prox && <EtiquetaUrgencia u={urgenciaDe(prox.vence, e.ahora)} />
           ) : (
             <Etiqueta t={r.estado === "cerrado" ? "ok" : "neutro"}>
-              {r.estado === "cerrado" ? "Cerrada" : "Caída"}
+              {r.estado === "cerrado" ? "Cerrada" : r.estado === "caido" ? "Caída" : "Eliminada"}
             </Etiqueta>
           )}
           {adendas.length > 0 && (
@@ -295,6 +332,30 @@ export default function Expediente() {
           </Boton>
         </div>
       </header>
+
+      {!r.aprobado && (
+        <div className="shrink-0 flex items-center gap-2.5 px-4 py-2.5 border-b border-[var(--ambar-borde)] bg-[var(--ambar-tenue)]/60">
+          <Icono n="alerta" s={15} className="text-[var(--ambar)] shrink-0" />
+          <p className="text-[12.5px] text-[var(--tinta-media)] flex-1">
+            Expediente nuevo: todavía no cuenta para las métricas.
+          </p>
+          <Boton chico tono="primario" ico="tilde" onClick={() => d({ t: "registro.aprobar", registroId: r.id })}>
+            Dar de alta
+          </Boton>
+        </div>
+      )}
+
+      {r.bajaPedida && (
+        <div className="shrink-0 flex items-center gap-2.5 px-4 py-2.5 border-b border-[var(--lacre-borde)] bg-[var(--lacre-tenue)]/60">
+          <Icono n="alerta" s={15} className="text-[var(--lacre)] shrink-0" />
+          <p className="text-[12.5px] text-[var(--tinta-media)] flex-1">
+            El asesor pidió dar de baja este expediente.
+          </p>
+          <Boton chico tono="primario" ico="tilde" onClick={() => d({ t: "registro.aprobarBaja", registroId: r.id })}>
+            Aprobar baja
+          </Boton>
+        </div>
+      )}
 
       <div className="flex-1 min-h-0 overflow-y-auto scroll">
         {/* Plazos */}
@@ -409,14 +470,23 @@ export default function Expediente() {
               {adendas.map((a) => (
                 <li
                   key={a.id}
-                  className="rounded-[var(--r-sm)] border border-[var(--sello-borde)] bg-[var(--sello-tenue)]/40 px-3 py-2"
+                  className={cn(
+                    "rounded-[var(--r-sm)] border px-3 py-2",
+                    a.aprobado
+                      ? "border-[var(--sello-borde)] bg-[var(--sello-tenue)]/40"
+                      : "border-[var(--ambar-borde)] bg-[var(--ambar-tenue)]/50",
+                  )}
                 >
                   <p className="flex items-baseline gap-2">
-                    <span className="exp" style={{ color: "var(--sello)" }}>
+                    <span className="exp" style={{ color: a.aprobado ? "var(--sello)" : "var(--ambar)" }}>
                       {a.id}
                     </span>
                     <span className="num text-[11px] text-[var(--tinta-tenue)]">{fechaHora(a.ts)}</span>
-                    <span className="num ml-auto text-[12px] font-semibold" style={{ color: "var(--sello)" }}>
+                    {!a.aprobado && <Etiqueta t="hoy">Nueva</Etiqueta>}
+                    <span
+                      className="num ml-auto text-[12px] font-semibold"
+                      style={{ color: a.aprobado ? "var(--sello)" : "var(--ambar)" }}
+                    >
                       +{a.diasExtension} días
                     </span>
                   </p>
@@ -425,6 +495,16 @@ export default function Expediente() {
                     <p className="num text-[12px] text-[var(--tinta)] mt-1">
                       Nuevo precio: USD {a.nuevoPrecio.toLocaleString("es-AR")}
                     </p>
+                  )}
+                  {!a.aprobado && (
+                    <div className="mt-2">
+                      <Boton chico tono="primario" ico="tilde" onClick={() => d({ t: "adenda.aprobar", adendaId: a.id })}>
+                        Dar de alta
+                      </Boton>
+                      <span className="text-[11px] text-[var(--tinta-suave)] ml-2">
+                        El plazo no se movió todavía.
+                      </span>
+                    </div>
                   )}
                 </li>
               ))}
@@ -515,7 +595,7 @@ export default function Expediente() {
           plazo={mover}
           ultimo={ultimoDocumento}
           cerrar={() => setMover(null)}
-          confirmar={(dias, motivo, via) => {
+          confirmar={(dias, motivo, via, nuevoPrecio) => {
             if (via === "adenda") {
               d({
                 t: "adenda.registrar",
@@ -523,6 +603,7 @@ export default function Expediente() {
                 plazoId: mover.id,
                 dias,
                 motivo: motivo || "Adenda firmada por las partes.",
+                nuevoPrecio,
                 desde: Date.now(),
               });
             } else {

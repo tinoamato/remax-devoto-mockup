@@ -38,10 +38,12 @@ generar documentos y a ver los que registró. Todo lo demás es de gerencia.
   atada: no se puede elegir otra propiedad ni otro documento. Se puede hacer antes de que el
   plazo venza y también después.
 - El texto de la adenda es el del papel real de la oficina («ADENDA PRORROGA RESERVA DE
-  COMPRA CABA»), transcripto tal cual. Al asesor sólo se le preguntan tres cosas: qué plazo
-  prorroga, qué día se firma y por cuántos días. Todo lo demás — partes, DNI, domicilios
-  electrónicos, inmueble, importes, fecha y vencimiento de la reserva original — lo hereda de
-  la reserva. Los importes y los días salen escritos en letras, como pide el documento.
+  COMPRA CABA»), transcripto tal cual. Al asesor se le pregunta qué plazo prorroga, qué día
+  se firma y por cuántos días; opcionalmente también puede cambiar el precio pactado y anotar
+  cualquier otra condición que varíe (forma de pago, etc.), que se agrega como cláusula extra.
+  Todo lo demás — partes, DNI, domicilios electrónicos, inmueble, importes, fecha y
+  vencimiento de la reserva original — lo hereda de la reserva. Los importes y los días salen
+  escritos en letras, como pide el documento.
 - Atención a la cuenta: el papel dice que la prórroga corre **desde la firma de la adenda**,
   no desde el vencimiento original. Así está implementado.
 - Gerencia edita la vigencia del último documento cargado del expediente (la reserva o su
@@ -49,7 +51,23 @@ generar documentos y a ver los que registró. Todo lo demás es de gerencia.
   correo que la genere, o como simple constancia. Siempre queda en el historial con autor,
   motivo y la fecha original.
 
-## 2. Facturación
+## 2. Altas y bajas
+
+- **Toda reserva o adenda que carga un asesor entra pendiente.** Le aparece a gerencia marcada
+  como «Nueva» en Reservas (con badge en el menú lateral) y en el expediente. No cuenta para
+  vencimientos ni para ninguna métrica hasta que gerencia le da el alta con un solo click.
+  Cuando la carga gerencia directamente (por ejemplo, una adenda desde «Editar vigencia»),
+  queda de alta al toque.
+- Una adenda pendiente no mueve el plazo todavía: el expediente sigue mostrando la fecha
+  vigente hasta que gerencia le da el alta, momento en el que recién se corre (con la regla de
+  que nunca se acorta un plazo ya cargado).
+- **Eliminar un expediente es una baja lógica.** No se borra nada: pasa a «Eliminadas», deja
+  de contar para métricas y datos, y conserva historial completo. Gerencia lo puede eliminar
+  directamente en cualquier momento. El asesor sólo puede *pedir* la baja (con motivo, desde
+  Mis documentos); el expediente queda marcado «Baja pedida» y sigue activo hasta que gerencia
+  la aprueba.
+
+## 3. Facturación
 
 - Carga manual cuando gerencia quiera y sobre el mes que quiera, con dos modos: **sumar** un
   monto a lo que ya está cargado (para ir agregando operación por operación) o **reemplazar**
@@ -64,7 +82,7 @@ generar documentos y a ver los que registró. Todo lo demás es de gerencia.
 - Un agente con menos de 18 meses no computa; hay filtro para verlos aparte. Los que están
   por cumplirlos aparecen listados, para poder mirarlos antes de que la fecha llegue.
 
-## 3. Avisos por correo
+## 4. Avisos por correo
 
 - Aviso previo al vencimiento: al asesor, con gerencia en copia oculta. Días configurables.
 - Aviso de plazo vencido: a los dos, sin ocultar.
@@ -96,5 +114,3 @@ lugar.
 - La redacción de cada pregunta. El criterio acordado es que no dejen margen de interpretación.
 - Si el asesor puede editar un documento ya registrado o si siempre tiene que desestimarlo y
   generar uno nuevo. Hoy no se edita: se registra uno nuevo.
-- Qué pasa cuando una reserva se cae y hay que tomar otra sobre la misma propiedad: hoy
-  gerencia tiene que darla de baja primero.

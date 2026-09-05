@@ -162,7 +162,7 @@ function BarraSuperior() {
 
 function Lateral() {
   const nav = useNav();
-  const { vencidos, hoy, seApagan, contactoVencido } = useDerivados();
+  const { vencidos, hoy, seApagan, contactoVencido, porRevisar } = useDerivados();
   const { e } = useApp();
   const items = nav.modo === "gerencia" ? NAV_GERENCIA : NAV_ASESOR;
   const activa = nav.modo === "gerencia" ? nav.vistaGerencia : nav.vistaAsesor;
@@ -174,13 +174,15 @@ function Lateral() {
   const insignia = (id: string) =>
     id === "vencimientos"
       ? vencidos.length + hoy.length
-      : id === "facturacion"
-        ? seApagan.length
-        : id === "automatizaciones"
-          ? contactoVencido.length
-          : id === "registros"
-            ? mios
-            : 0;
+      : id === "reservas"
+        ? porRevisar
+        : id === "facturacion"
+          ? seApagan.length
+          : id === "automatizaciones"
+            ? contactoVencido.length
+            : id === "registros"
+              ? mios
+              : 0;
 
   return (
     <nav className="hidden md:flex flex-col w-[196px] shrink-0 border-r border-[var(--linea)] bg-[var(--papel-alto)]">
@@ -188,7 +190,9 @@ function Lateral() {
         {items.map((it) => {
           const on = activa === it.id;
           const n = insignia(it.id);
-          const alerta = nav.modo === "gerencia" && it.id === "vencimientos" && vencidos.length > 0;
+          const alerta =
+            nav.modo === "gerencia" &&
+            ((it.id === "vencimientos" && vencidos.length > 0) || (it.id === "reservas" && porRevisar > 0));
           return (
             <li key={it.id}>
               <button

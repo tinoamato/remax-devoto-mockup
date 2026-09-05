@@ -20,23 +20,27 @@ import { Icono } from "../../lib/icons";
 import { cn, fechaHora, hace } from "../../lib/format";
 import type { EstadoRegistro, Jurisdiccion, Registro } from "../datos";
 
-const ESTADOS: [EstadoRegistro | "", string][] = [
+type FiltroEstado = EstadoRegistro | "" | "nuevas";
+
+const ESTADOS: [FiltroEstado, string][] = [
   ["", "Todas"],
+  ["nuevas", "Nuevas"],
   ["vigente", "Vigentes"],
   ["cerrado", "Cerradas"],
   ["caido", "Caídas"],
+  ["eliminado", "Eliminadas"],
 ];
 
 type Campo = "id" | "direccion" | "asesor" | "contraparte" | "vence" | "generado" | "vigencia";
 
 export default function Reservas() {
-  const { e } = useApp();
+  const { e, d } = useApp();
   const nav = useNav();
-  const { expedientes, proximoDe } = useDerivados();
+  const { expedientes, proximoDe, bajasPedidas } = useDerivados();
   const orden = useOrden<Campo>("vence");
 
   const [q, setQ] = useState("");
-  const [estado, setEstado] = useState<EstadoRegistro | "">("");
+  const [estado, setEstado] = useState<FiltroEstado>("");
   const [tipo, setTipo] = useState("");
   const [asesorId, setAsesorId] = useState("");
   const [jur, setJur] = useState<Jurisdiccion | "">("");
@@ -46,7 +50,7 @@ export default function Reservas() {
   const filas = useMemo(() => {
     const t = q.trim().toLowerCase();
     const base = expedientes
-      .filter((r) => !estado || r.estado === estado)
+      .filter((r) => !estado || (estado === "nuevas" ? !r.aprobado : r.estado === estado))
       .filter((r) => !tipo || r.plantillaId === tipo)
       .filter((r) => !asesorId || r.asesorId === asesorId)
       .filter((r) => !jur || r.jurisdiccion === jur)
@@ -102,6 +106,16 @@ export default function Reservas() {
           cuenta={filas.length}
           extra={<Buscador valor={q} alCambiar={setQ} hint="Buscar…" className="w-[160px]" />}
         />
+
+        {bajasPedidas.length > 0 && (
+          <div className="flex items-center gap-2 px-3.5 py-2 border-b border-[var(--lacre-borde)] bg-[var(--lacre-tenue)]/50">
+            <Icono n="alerta" s={14} className="text-[var(--lacre)] shrink-0" />
+            <p className="text-[12px] text-[var(--tinta-media)]">
+              {bajasPedidas.length} expediente{bajasPedidas.length > 1 ? "s" : ""} con baja pedida por el asesor,
+              esperando que gerencia la apruebe.
+            </p>
+          </div>
+        )}
 
         <div className="flex flex-wrap items-center gap-1.5 px-3.5 py-2 border-b border-[var(--linea-suave)]">
           <div className="flex items-center rounded-[var(--r-sm)] border border-[var(--linea-fuerte)] p-[2px]">
@@ -214,15 +228,45 @@ export default function Reservas() {
                     >
                       <Td>
                         <span className="exp block">{r.id}</span>
-                        <span className="block mt-1">
+                        <span className="flex flex-wrap items-center gap-1 mt-1">
                           {r.estado === "vigente" ? (
                             <Etiqueta t="sello">Vigente</Etiqueta>
                           ) : (
                             <Etiqueta t={r.estado === "cerrado" ? "ok" : "neutro"}>
-                              {r.estado === "cerrado" ? "Cerrada" : "Caída"}
+                              {r.estado === "cerrado" ? "Cerrada" : r.estado === "caido" ? "Caída" : "Eliminada"}
                             </Etiqueta>
                           )}
+                          {!r.aprobado && <Etiqueta t="hoy">Nueva</Etiqueta>}
+                          {r.bajaPedida && <Etiqueta t="vencida">Baja pedida</Etiqueta>}
                         </span>
+                        {!r.aprobado && (
+                          <Boton
+                            chico
+                            tono="primario"
+                            ico="tilde"
+                            className="mt-1.5"
+                            onClick={(ev) => {
+                              ev.stopPropagation();
+                              d({ t: "registro.aprobar", registroId: r.id });
+                            }}
+                          >
+                            Dar de alta
+                          </Boton>
+                        )}
+                        {r.bajaPedida && (
+                          <Boton
+                            chico
+                            tono="primario"
+                            ico="tilde"
+                            className="mt-1.5"
+                            onClick={(ev) => {
+                              ev.stopPropagation();
+                              d({ t: "registro.aprobarBaja", registroId: r.id });
+                            }}
+                          >
+                            Aprobar baja
+                          </Boton>
+                        )}
                       </Td>
                       <Td>
                         <span className="block text-[13px] font-medium truncate">

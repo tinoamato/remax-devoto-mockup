@@ -29,7 +29,7 @@ import {
   type Regla,
   type Umbrales,
 } from "./datos";
-import { CAMPO_VIGENCIA, plantillaPorId } from "./plantillas";
+import { CAMPO_VIGENCIA, campoVisible, plantillaPorId } from "./plantillas";
 
 const dia = 86_400_000;
 
@@ -71,6 +71,9 @@ export type Accion =
   | { t: "tic" }
   | { t: "yo"; asesorId: string }
   | { t: "registro.crear"; plantillaId: string; valores: Record<string, string> }
+  | { t: "registro.aprobar"; registroId: string }
+  | { t: "registro.pedirBaja"; registroId: string; motivo: string }
+  | { t: "registro.aprobarBaja"; registroId: string }
   | { t: "notificar.adenda"; registroId: string; plazoId: string }
   | { t: "registro.estado"; registroId: string; estado: EstadoRegistro }
   | { t: "registro.nota"; registroId: string; texto: string }
@@ -87,6 +90,7 @@ export type Accion =
       /** Desde qué día se cuenta la prórroga. Por defecto, el vencimiento vigente. */
       desde?: number;
     }
+  | { t: "adenda.aprobar"; adendaId: string }
   | { t: "doc.enviar"; registroId: string; destino: "recepcion" | "cliente"; direccion: string }
   | { t: "factura.set"; asesorId: string; mes: number; monto: number }
   | { t: "factura.sumar"; asesorId: string; mes: number; monto: number }
@@ -147,7 +151,7 @@ function reducir(e: Estado, a: Accion): Estado {
       const desde = Number.isFinite(desdeIso(iso)) ? desdeIso(iso) : e.ahora;
 
       const plazos: Plazo[] = pl.plazos
-        .filter((dp) => !dp.visibleSi || dp.visibleSi.valores.includes(a.valores[dp.visibleSi.campo] ?? ""))
+        .filter((dp) => campoVisible(dp, a.valores))
         .map((dp) => {
           const d = Number(a.valores[dp.campoDias] ?? 0) || 0;
           const vence = cierreDe(desde + d * dia);
@@ -165,12 +169,18 @@ function reducir(e: Estado, a: Accion): Estado {
         // El formulario ofrece los plazos por su rótulo; acá se traduce al id.
         const plazoId =
           padre.plazos.find((p) => p.rotulo === a.valores.plazoAfectado)?.id ?? a.valores.plazoAfectado;
+        const nuevoPrecio = Number(a.valores.nuevoPrecio) || undefined;
+        const motivo = [a.valores.observaciones, a.valores.otrasModificaciones]
+          .map((x) => (x ?? "").trim())
+          .filter(Boolean)
+          .join(" ") || "Prórroga de la reserva.";
         return reducir(e, {
           t: "adenda.registrar",
           registroId: padre.id,
           plazoId,
           dias: Number(a.valores.diasProrroga) || 0,
-          motivo: a.valores.observaciones || "Prórroga de la reserva.",
+          motivo,
+          nuevoPrecio,
           desde: Number.isFinite(desdeIso(iso)) ? desdeIso(iso) : e.ahora,
           autor: asesor?.nombre ?? "Asesor",
         });
@@ -209,11 +219,12 @@ function reducir(e: Estado, a: Accion): Estado {
         plazos,
         estado: "vigente",
         observaciones: a.valores.observaciones ?? "",
+        aprobado: false,
         historial: [
           evento(
             e.ahora,
             "generado",
-            `${pl.nombre} generado y registrado. Vigencia desde el ${new Date(desde).toLocaleDateString("es-AR")}; quedan corriendo ${plazos.length} plazos.`,
+            `${pl.nombre} generado y registrado. Vigencia desde el ${new Date(desde).toLocaleDateString("es-AR")}; quedan corriendo ${plazos.length} plazos. Pendiente de que gerencia le dé el alta.`,
             asesor?.nombre ?? "Asesor",
           ),
         ],
@@ -221,24 +232,83 @@ function reducir(e: Estado, a: Accion): Estado {
       return {
         ...e,
         registros: [reg, ...e.registros],
-        avisos: avisar(e, `${id} registrado. Gerencia ya lo ve en el panel de vencimientos.`, "ok"),
+        avisos: avisar(e, `${id} registrado, marcado como nuevo. Gerencia lo ve en Reservas para darle el alta.`, "ok"),
       };
     }
+
+    case "registro.aprobar":
+      return {
+        ...e,
+        registros: mapReg(e, a.registroId, (r) => ({
+          ...r,
+          aprobado: true,
+          historial: [
+            ...r.historial,
+            evento(e.ahora, "estado", "Gerencia le dio el alta. Ya cuenta para las métricas.", "Gerencia"),
+          ],
+        })),
+        avisos: avisar(e, `${a.registroId} dado de alta.`, "ok"),
+      };
+
+    case "registro.pedirBaja":
+      return {
+        ...e,
+        registros: mapReg(e, a.registroId, (r) => ({
+          ...r,
+          bajaPedida: true,
+          historial: [
+            ...r.historial,
+            evento(
+              e.ahora,
+              "nota",
+              `El asesor pidió dar de baja el expediente. ${a.motivo}`.trim(),
+              "Asesor",
+            ),
+          ],
+        })),
+        avisos: avisar(e, `Se pidió la baja de ${a.registroId}. Falta que gerencia la apruebe.`, "neutro"),
+      };
+
+    case "registro.aprobarBaja":
+      return {
+        ...e,
+        registros: mapReg(e, a.registroId, (r) => ({
+          ...r,
+          estado: "eliminado",
+          bajaPedida: false,
+          historial: [
+            ...r.historial,
+            evento(
+              e.ahora,
+              "estado",
+              "Gerencia aprobó la baja pedida por el asesor. Queda en Eliminadas, no cuenta para métricas ni datos, pero el historial se conserva.",
+              "Gerencia",
+            ),
+          ],
+        })),
+        avisos: avisar(e, `${a.registroId} dado de baja (baja lógica).`, "neutro"),
+      };
 
     case "registro.estado": {
       const rotulo: Record<EstadoRegistro, string> = {
         vigente: "reabierto",
         cerrado: "cerrado: la operación se concretó",
         caido: "dado de baja: la operación se cayó",
+        eliminado: "eliminado (baja lógica): no cuenta más para métricas ni datos, pero el historial se conserva",
       };
       return {
         ...e,
         registros: mapReg(e, a.registroId, (r) => ({
           ...r,
           estado: a.estado,
+          bajaPedida: a.estado === "eliminado" ? false : r.bajaPedida,
           historial: [...r.historial, evento(e.ahora, "estado", `Expediente ${rotulo[a.estado]}.`, "Gerencia")],
         })),
-        avisos: avisar(e, `${a.registroId} — ${rotulo[a.estado]}.`, a.estado === "caido" ? "riesgo" : "ok"),
+        avisos: avisar(
+          e,
+          `${a.registroId} — ${rotulo[a.estado]}.`,
+          a.estado === "caido" || a.estado === "eliminado" ? "riesgo" : "ok",
+        ),
       };
     }
 
@@ -303,21 +373,49 @@ function reducir(e: Estado, a: Accion): Estado {
       if (!reg) return e;
       const p = reg.plazos.find((x) => x.id === a.plazoId);
       if (!p) return e;
+      const autor = a.autor ?? "Gerencia";
+      // Cuando la genera gerencia queda aplicada al toque; cuando la genera el
+      // asesor queda pendiente hasta que gerencia le dé el alta (adenda.aprobar).
+      const deGerencia = autor === "Gerencia";
+      const desde = a.desde ?? e.ahora;
       const ad: Adenda = {
         id: `AD-${String(++seqExpediente).padStart(4, "0")}`,
         registroId: a.registroId,
         ts: e.ahora,
         plazoId: a.plazoId,
         diasExtension: a.dias,
+        desde,
         motivo: a.motivo,
         nuevoPrecio: a.nuevoPrecio,
-        autor: a.autor ?? "Gerencia",
+        autor,
+        aprobado: deGerencia,
       };
+
+      if (!deGerencia) {
+        return {
+          ...e,
+          adendas: [ad, ...e.adendas],
+          registros: mapReg(e, a.registroId, (r) => ({
+            ...r,
+            historial: [
+              ...r.historial,
+              evento(
+                e.ahora,
+                "adenda",
+                `${autor} generó la adenda ${ad.id} sobre «${p.rotulo}» (${a.dias} días${a.nuevoPrecio ? `, nuevo precio USD ${a.nuevoPrecio.toLocaleString("es-AR")}` : ""}). Pendiente de que gerencia le dé el alta; el plazo no se movió todavía.`,
+                autor,
+              ),
+            ],
+          })),
+          avisos: avisar(e, `${ad.id} generada, marcada como nueva. Gerencia la ve en el expediente para darle el alta.`, "ok"),
+        };
+      }
+
       // La prórroga del papel corre desde la firma de la adenda; cuando gerencia
       // sólo corrige una fecha, se cuenta desde el vencimiento que había. Nunca
       // se acorta un plazo por una adenda: si el cálculo da antes de lo que ya
       // estaba, se mantiene el vencimiento vigente (siempre gana el que vence después).
-      const propuesto = a.desde !== undefined ? cierreDe(a.desde + a.dias * dia) : cierreDe(p.vence + a.dias * dia);
+      const propuesto = cierreDe(desde + a.dias * dia);
       const nuevo = Math.max(propuesto, p.vence);
       return {
         ...e,
@@ -337,6 +435,36 @@ function reducir(e: Estado, a: Accion): Estado {
           ],
         })),
         avisos: avisar(e, `${ad.id} registrada. El plazo quedó corrido ${a.dias} días.`, "ok"),
+      };
+    }
+
+    case "adenda.aprobar": {
+      const ad = e.adendas.find((x) => x.id === a.adendaId);
+      if (!ad || ad.aprobado) return e;
+      const reg = e.registros.find((r) => r.id === ad.registroId);
+      if (!reg) return e;
+      const p = reg.plazos.find((x) => x.id === ad.plazoId);
+      if (!p) return e;
+      const propuesto = cierreDe(ad.desde + ad.diasExtension * dia);
+      const nuevo = Math.max(propuesto, p.vence);
+      return {
+        ...e,
+        adendas: e.adendas.map((x) => (x.id === ad.id ? { ...x, aprobado: true } : x)),
+        registros: mapReg(e, ad.registroId, (r) => ({
+          ...r,
+          plazos: r.plazos.map((x) => (x.id === ad.plazoId ? { ...x, vence: nuevo, movidoPor: ad.id } : x)),
+          valores: ad.nuevoPrecio ? { ...r.valores, precioOfertado: String(ad.nuevoPrecio) } : r.valores,
+          historial: [
+            ...r.historial,
+            evento(
+              e.ahora,
+              "adenda",
+              `Gerencia dio el alta a ${ad.id}. «${p.rotulo}» queda corrido hasta el ${new Date(nuevo).toLocaleDateString("es-AR")}.${ad.nuevoPrecio ? ` Nuevo precio USD ${ad.nuevoPrecio.toLocaleString("es-AR")}.` : ""}`,
+              "Gerencia",
+            ),
+          ],
+        })),
+        avisos: avisar(e, `${ad.id} dada de alta. El plazo quedó corrido.`, "ok"),
       };
     }
 
@@ -550,8 +678,10 @@ export function useDerivados() {
   return useMemo(() => {
     const porId = new Map(e.asesores.map((a) => [a.id, a]));
 
+    // Lo pendiente de alta no cuenta para métricas todavía; lo eliminado (baja
+    // lógica) tampoco, aunque sigue existiendo con su historial intacto.
     const plazosVivos: PlazoVivo[] = e.registros
-      .filter((r) => r.estado === "vigente")
+      .filter((r) => r.estado === "vigente" && r.aprobado)
       .flatMap((r) =>
         r.plazos
           .filter((p) => !p.cumplido)
@@ -650,6 +780,12 @@ export function useDerivados() {
     const direccionesDe = (asesorId: string) =>
       [...new Set(e.registros.filter((r) => r.asesorId === asesorId).map((r) => r.direccion))].sort();
 
+    /** Lo que gerencia todavía tiene para revisar: altas, bajas y adendas nuevas. */
+    const registrosNuevos = e.registros.filter((r) => !r.aprobado);
+    const bajasPedidas = e.registros.filter((r) => r.bajaPedida);
+    const adendasNuevas = e.adendas.filter((a) => !a.aprobado);
+    const porRevisar = registrosNuevos.length + bajasPedidas.length + adendasNuevas.length;
+
     return {
       reservaVigenteDe,
       direccionesDe,
@@ -666,6 +802,10 @@ export function useDerivados() {
       contactoPorVencer,
       cola,
       facturacion12,
+      registrosNuevos,
+      bajasPedidas,
+      adendasNuevas,
+      porRevisar,
     };
   }, [e]);
 }

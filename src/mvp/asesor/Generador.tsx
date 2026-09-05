@@ -349,7 +349,12 @@ export default function Generador() {
       diasPlazoOriginal: plazoMadre
         ? String(Math.round((plazoMadre.original - reservaMadre.vigenciaDesde) / 86_400_000))
         : "",
-      nuevoVencimiento: dias > 0 ? fechaCorta(cierreDe(desdeVigencia + dias * 86_400_000)) : "",
+      // Una adenda nunca acorta el plazo: si la cuenta da antes de lo que ya
+      // estaba, se mantiene el vencimiento vigente (siempre gana el que vence después).
+      nuevoVencimiento:
+        dias > 0
+          ? fechaCorta(Math.max(cierreDe(desdeVigencia + dias * 86_400_000), plazoMadre?.vence ?? 0))
+          : "",
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [valores, reservaMadre, plazoMadre, desdeVigencia]);
@@ -400,8 +405,8 @@ export default function Generador() {
             </h2>
             <p className="text-[12.5px] text-[var(--tinta-suave)] mt-1 max-w-[42ch] mx-auto">
               {registrado === "adenda"
-                ? "El plazo de la reserva quedó corrido y anotado en el historial. Gerencia lo ve al instante."
-                : "Gerencia ya lo ve en el panel de vencimientos, con la propiedad, tu nombre y los plazos corriendo."}
+                ? "Quedó marcada como nueva en Reservas. El plazo se corre recién cuando gerencia le da el alta."
+                : "Quedó marcada como nueva en Reservas. Gerencia tiene que darle el alta para que empiece a contar en vencimientos."}
             </p>
 
             {registrado === "documento" && ultimo && (
@@ -637,7 +642,8 @@ export default function Generador() {
                       )}
                     </p>
                     <p className="text-[11.5px] text-[var(--tinta-suave)] mt-1">
-                      Se cuenta desde la firma de la adenda, como dice el documento.
+                      Se cuenta desde la firma de la adenda, como dice el documento. Se aplica recién
+                      cuando gerencia le da el alta.
                     </p>
                   </div>
                 )}

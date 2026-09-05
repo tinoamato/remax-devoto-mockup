@@ -32,8 +32,8 @@ export interface Campo {
   tipo: TipoCampo;
   opciones?: string[];
   requerido?: boolean;
-  /** Sólo aparece si otro campo tiene alguno de estos valores. */
-  visibleSi?: { campo: string; valores: string[] };
+  /** Sólo aparece si otro campo tiene alguno de estos valores; sin "valores", alcanza con que no esté vacío. */
+  visibleSi?: { campo: string; valores?: string[] };
   sugerido?: string;
 }
 
@@ -48,7 +48,7 @@ export interface DefPlazo {
   rotulo: string;
   /** Campo de días desde el que se calcula el vencimiento. */
   campoDias: string;
-  visibleSi?: { campo: string; valores: string[] };
+  visibleSi?: { campo: string; valores?: string[] };
 }
 
 export interface Clausula {
@@ -56,7 +56,8 @@ export interface Clausula {
   texto: string;
   /** El título va en su propio renglón, como los apartados de los papeles reales. */
   bloque?: boolean;
-  visibleSi?: { campo: string; valores: string[] };
+  /** Sin "valores", alcanza con que el campo no esté vacío: sirve para cláusulas opcionales. */
+  visibleSi?: { campo: string; valores?: string[] };
 }
 
 export interface Plantilla {
@@ -366,6 +367,24 @@ const adenda: Plantilla = {
         },
       ],
     },
+    {
+      id: "cambios",
+      titulo: "Otras condiciones que cambian (opcional)",
+      campos: [
+        {
+          id: "nuevoPrecio",
+          pregunta: "¿Cambia el precio pactado?",
+          ayuda: "Dejalo vacío si el precio no se toca. Si lo completás, reemplaza el precio de la reserva.",
+          tipo: "moneda",
+        },
+        {
+          id: "otrasModificaciones",
+          pregunta: "¿Alguna otra condición que cambie?",
+          ayuda: "Forma de pago, plazos, lo que sea. Se agrega como una cláusula más de la adenda. Dejalo vacío si no hay nada más que cambiar.",
+          tipo: "parrafo",
+        },
+      ],
+    },
     observaciones,
   ],
   plazos: [],
@@ -394,7 +413,16 @@ const adenda: Plantilla = {
     },
     {
       texto:
-        "Las partes firmantes ratifican aceptar de común acuerdo esta ADENDA prestando total conformidad manteniendo al propio tiempo plenamente vigentes las cláusulas términos y condiciones de la OFERTA RESERVA mencionada que no se reiteran en este documento.",
+        "Asimismo, las partes acuerdan modificar el precio total pactado en la Oferta/Reserva mencionada, que pasa a ser de Dólares Estadounidenses Billetes {{nuevoPrecioLetras}} (U$S {{nuevoPrecio}}).",
+      visibleSi: { campo: "nuevoPrecio" },
+    },
+    {
+      texto: "Además, las partes acuerdan la siguiente modificación: {{otrasModificaciones}}.",
+      visibleSi: { campo: "otrasModificaciones" },
+    },
+    {
+      texto:
+        "Las partes firmantes ratifican aceptar de común acuerdo esta ADENDA prestando total conformidad manteniendo al propio tiempo plenamente vigentes las cláusulas términos y condiciones de la OFERTA RESERVA mencionada que no se reiteran en este documento, salvo lo aquí expresamente modificado.",
     },
     {
       texto:
@@ -412,9 +440,11 @@ export const plantillaPorId = (id: string) => plantillas.find((p) => p.id === id
 
 /* ── Utilidades de resolución ───────────────────────────────── */
 
-export function campoVisible(c: { visibleSi?: { campo: string; valores: string[] } }, v: Record<string, string>) {
+export function campoVisible(c: { visibleSi?: { campo: string; valores?: string[] } }, v: Record<string, string>) {
   if (!c.visibleSi) return true;
-  return c.visibleSi.valores.includes(v[c.visibleSi.campo] ?? "");
+  const valor = v[c.visibleSi.campo] ?? "";
+  if (!c.visibleSi.valores) return valor.trim() !== "";
+  return c.visibleSi.valores.includes(valor);
 }
 
 /** Todos los campos de la plantilla que hoy corresponde mostrar. */

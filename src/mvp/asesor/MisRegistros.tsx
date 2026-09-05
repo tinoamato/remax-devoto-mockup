@@ -10,10 +10,55 @@ import type { Registro } from "../datos";
 
 const ORDEN: Record<Urgencia, number> = { vencida: 0, hoy: 1, semana: 2, ok: 3 };
 
+/** Pedir la baja de un expediente: gerencia tiene que aprobarla para que se efectivice. */
+function PedirBaja({ r, cerrar }: { r: Registro; cerrar: () => void }) {
+  const { d } = useApp();
+  const [motivo, setMotivo] = useState("");
+
+  return (
+    <Modal
+      titulo="Pedir la baja"
+      sub={`${r.id} · ${r.direccion}`}
+      cerrar={cerrar}
+      ancho={440}
+      pie={
+        <>
+          <Boton onClick={cerrar}>Cancelar</Boton>
+          <Boton
+            tono="peligro"
+            onClick={() => {
+              d({ t: "registro.pedirBaja", registroId: r.id, motivo: motivo.trim() });
+              cerrar();
+            }}
+          >
+            Pedir la baja
+          </Boton>
+        </>
+      }
+    >
+      <p className="text-[12.5px] text-[var(--tinta-suave)] mb-3">
+        Gerencia tiene que aprobarla para que quede dada de baja. Mientras tanto el expediente sigue
+        activo y aparece marcado como «baja pedida».
+      </p>
+      <label className="block">
+        <span className="rotulo block mb-1">Motivo</span>
+        <textarea
+          value={motivo}
+          onChange={(ev) => setMotivo(ev.target.value)}
+          rows={2}
+          placeholder="Por ejemplo: el comprador se bajó de la operación."
+          className="w-full bg-[var(--papel-hundido)] border border-[var(--linea-fuerte)] rounded-[var(--r-sm)] px-2.5 py-2 text-[13px] outline-none focus:bg-[var(--papel-alto)] focus:border-[var(--sello)] resize-y"
+        />
+      </label>
+    </Modal>
+  );
+}
+
 export default function MisRegistros() {
   const { e } = useApp();
   const nav = useNav();
   const [verDoc, setVerDoc] = useState<Registro | null>(null);
+  const [pidiendoBaja, setPidiendoBaja] = useState<Registro | null>(null);
   const [filtro, setFiltro] = useState<"vivos" | "todos">("vivos");
 
   const mios = useMemo(() => {
@@ -99,7 +144,7 @@ export default function MisRegistros() {
                         <div className="text-right shrink-0">
                           {r.estado !== "vigente" ? (
                             <Etiqueta t={r.estado === "cerrado" ? "ok" : "neutro"}>
-                              {r.estado === "cerrado" ? "Cerrado" : "Caído"}
+                              {r.estado === "cerrado" ? "Cerrado" : r.estado === "caido" ? "Caído" : "Eliminado"}
                             </Etiqueta>
                           ) : (
                             <>
@@ -113,6 +158,13 @@ export default function MisRegistros() {
                           )}
                         </div>
                       </div>
+
+                      {(!r.aprobado || r.bajaPedida) && (
+                        <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                          {!r.aprobado && <Etiqueta t="hoy">Pendiente de alta</Etiqueta>}
+                          {r.bajaPedida && <Etiqueta t="vencida">Baja pedida</Etiqueta>}
+                        </div>
+                      )}
 
                       {vivos.length > 0 && (
                         <ul className="mt-2.5 grid gap-1 sm:grid-cols-2">
@@ -158,6 +210,11 @@ export default function MisRegistros() {
                         {r.estado === "vigente" && adenda && (
                           <Boton chico ico="agenda" onClick={() => nav.generarAdenda(adenda.id, r.id)}>
                             Extender con adenda
+                          </Boton>
+                        )}
+                        {r.estado === "vigente" && !r.bajaPedida && (
+                          <Boton chico tono="fantasma" ico="cruz" onClick={() => setPidiendoBaja(r)}>
+                            Pedir la baja
                           </Boton>
                         )}
                       </div>
@@ -209,6 +266,8 @@ export default function MisRegistros() {
           })()}
         </Modal>
       )}
+
+      {pidiendoBaja && <PedirBaja r={pidiendoBaja} cerrar={() => setPidiendoBaja(null)} />}
     </div>
   );
 }

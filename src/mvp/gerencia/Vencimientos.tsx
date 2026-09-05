@@ -100,7 +100,7 @@ export default function Vencimientos() {
     });
   }, [plazosVivos, q, asesorId, foco, orden]);
 
-  const vigentes = e.registros.filter((r) => r.estado === "vigente").length;
+  const vigentes = e.registros.filter((r) => r.estado === "vigente" && r.aprobado).length;
   const conAsesor = (id: string) => e.asesores.find((a) => a.id === id);
 
   return (
@@ -261,7 +261,13 @@ export default function Vencimientos() {
                           {f.registro.unidad && ` · ${f.registro.unidad}`}
                           <span className="exp ml-1.5">{f.registro.id}</span>
                         </span>
-                        {f.plazo.movidoPor && (
+                        {f.plazo.movidoPor && !f.plazo.movidoPor.startsWith("AD-") && (
+                          <span className="inline-flex items-center gap-1 mt-1 text-[10.5px]" style={{ color: "var(--ambar)" }}>
+                            <Icono n="alerta" s={11} />
+                            sin documentación cargada
+                          </span>
+                        )}
+                        {f.plazo.movidoPor?.startsWith("AD-") && (
                           <span className="inline-flex items-center gap-1 mt-1 text-[10.5px] text-[var(--tinta-tenue)]">
                             <Icono n="historial" s={11} />
                             plazo extendido ({f.plazo.movidoPor})
