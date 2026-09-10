@@ -10,6 +10,7 @@ import Vencimientos from "./gerencia/Vencimientos";
 import Reservas from "./gerencia/Reservas";
 import Facturacion from "./gerencia/Facturacion";
 import Automatizaciones from "./gerencia/Automatizaciones";
+import Contacto from "./gerencia/Contacto";
 import Expediente from "./gerencia/Expediente";
 
 const NAV_GERENCIA: { id: VistaGerencia; l: string; corto: string; i: NombreIcono }[] = [
@@ -17,6 +18,7 @@ const NAV_GERENCIA: { id: VistaGerencia; l: string; corto: string; i: NombreIcon
   { id: "reservas", l: "Reservas", corto: "Reservas", i: "expediente" },
   { id: "facturacion", l: "Facturación", corto: "Facturac.", i: "tendencia" },
   { id: "automatizaciones", l: "Automatizaciones", corto: "Avisos", i: "rayo" },
+  { id: "contacto", l: "Contacto con agentes", corto: "Contacto", i: "pulso" },
 ];
 
 const NAV_ASESOR: { id: VistaAsesor; l: string; corto: string; i: NombreIcono }[] = [
@@ -29,6 +31,7 @@ const TITULOS: Record<string, string> = {
   reservas: "Reservas registradas",
   facturacion: "Facturación y proyección por agente",
   automatizaciones: "Avisos automáticos por correo",
+  contacto: "Último contacto con cada agente",
   generar: "Generar un documento",
   registros: "Mis documentos registrados",
 };
@@ -98,7 +101,7 @@ function BarraSuperior() {
         {(
           [
             ["gerencia", "Gerencia"],
-            ["asesor", "Asesor"],
+            ["asesor", "Agente"],
           ] as const
         ).map(([k, l]) => (
           <button
@@ -178,7 +181,7 @@ function Lateral() {
         ? porRevisar
         : id === "facturacion"
           ? seApagan.length
-          : id === "automatizaciones"
+          : id === "contacto"
             ? contactoVencido.length
             : id === "registros"
               ? mios
@@ -322,8 +325,10 @@ function Cuerpo() {
                 <Reservas />
               ) : nav.vistaGerencia === "facturacion" ? (
                 <Facturacion />
-              ) : (
+              ) : nav.vistaGerencia === "automatizaciones" ? (
                 <Automatizaciones />
+              ) : (
+                <Contacto />
               )
             ) : nav.vistaAsesor === "generar" ? (
               <Generador />

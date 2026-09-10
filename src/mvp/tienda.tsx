@@ -182,7 +182,7 @@ function reducir(e: Estado, a: Accion): Estado {
           motivo,
           nuevoPrecio,
           desde: Number.isFinite(desdeIso(iso)) ? desdeIso(iso) : e.ahora,
-          autor: asesor?.nombre ?? "Asesor",
+          autor: asesor?.nombre ?? "Agente",
         });
       }
 
@@ -225,7 +225,7 @@ function reducir(e: Estado, a: Accion): Estado {
             e.ahora,
             "generado",
             `${pl.nombre} generado y registrado. Vigencia desde el ${new Date(desde).toLocaleDateString("es-AR")}; quedan corriendo ${plazos.length} plazos. Pendiente de que gerencia le dé el alta.`,
-            asesor?.nombre ?? "Asesor",
+            asesor?.nombre ?? "Agente",
           ),
         ],
       };
@@ -261,8 +261,8 @@ function reducir(e: Estado, a: Accion): Estado {
             evento(
               e.ahora,
               "nota",
-              `El asesor pidió dar de baja el expediente. ${a.motivo}`.trim(),
-              "Asesor",
+              `El agente pidió dar de baja el expediente. ${a.motivo}`.trim(),
+              "Agente",
             ),
           ],
         })),
@@ -281,7 +281,7 @@ function reducir(e: Estado, a: Accion): Estado {
             evento(
               e.ahora,
               "estado",
-              "Gerencia aprobó la baja pedida por el asesor. Queda en Eliminadas, no cuenta para métricas ni datos, pero el historial se conserva.",
+              "Gerencia aprobó la baja pedida por el agente. Queda en Eliminadas, no cuenta para métricas ni datos, pero el historial se conserva.",
               "Gerencia",
             ),
           ],
@@ -479,7 +479,7 @@ function reducir(e: Estado, a: Accion): Estado {
         registros: reg
           ? mapReg(e, a.registroId, (r) => ({
               ...r,
-              historial: [...r.historial, evento(e.ahora, "nota", texto, "Asesor")],
+              historial: [...r.historial, evento(e.ahora, "nota", texto, "Agente")],
             }))
           : e.registros,
         avisos: avisar(e, texto, "ok"),
@@ -572,7 +572,7 @@ function reducir(e: Estado, a: Accion): Estado {
         ],
         contacto: [
           `Contacto pendiente · ${asesor.nombre}`,
-          `Se cumplen ${asesor.topeContactoDias} días sin contacto con ${asesor.nombre}. Este aviso no le llega al asesor.`,
+          `Se cumplen ${asesor.topeContactoDias} días sin contacto con ${asesor.nombre}. Este aviso no le llega al agente.`,
         ],
       };
       const [asunto, cuerpo] = guiones[a.id];

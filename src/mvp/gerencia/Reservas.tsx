@@ -111,7 +111,7 @@ export default function Reservas() {
           <div className="flex items-center gap-2 px-3.5 py-2 border-b border-[var(--lacre-borde)] bg-[var(--lacre-tenue)]/50">
             <Icono n="alerta" s={14} className="text-[var(--lacre)] shrink-0" />
             <p className="text-[12px] text-[var(--tinta-media)]">
-              {bajasPedidas.length} expediente{bajasPedidas.length > 1 ? "s" : ""} con baja pedida por el asesor,
+              {bajasPedidas.length} expediente{bajasPedidas.length > 1 ? "s" : ""} con baja pedida por el agente,
               esperando que gerencia la apruebe.
             </p>
           </div>
@@ -137,8 +137,8 @@ export default function Reservas() {
             ))}
           </div>
 
-          <select value={asesorId} onChange={(ev) => setAsesorId(ev.target.value)} aria-label="Filtrar por asesor" className={selector} style={flecha}>
-            <option value="">Todos los asesores</option>
+          <select value={asesorId} onChange={(ev) => setAsesorId(ev.target.value)} aria-label="Filtrar por agente" className={selector} style={flecha}>
+            <option value="">Todos los agentes</option>
             {e.asesores.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.nombre}
@@ -198,7 +198,7 @@ export default function Reservas() {
                     Propiedad y documento
                   </ThOrden>
                   <ThOrden campo="asesor" orden={orden} ancho={160}>
-                    Asesor
+                    Agente
                   </ThOrden>
                   <ThOrden campo="contraparte" orden={orden} ancho={140}>
                     Otra parte
@@ -336,7 +336,7 @@ export default function Reservas() {
       </Panel>
 
       <p className="text-[11.5px] text-[var(--tinta-tenue)] mt-3 px-1">
-        Cada fila salió de un asesor que apretó Registrar. Una propiedad no puede tener dos reservas vigentes
+        Cada fila salió de un agente que apretó Registrar. Una propiedad no puede tener dos reservas vigentes
         al mismo tiempo.{" "}
         <Boton chico tono="fantasma" onClick={() => nav.irGerencia("vencimientos")}>
           Ir al tablero de vencimientos

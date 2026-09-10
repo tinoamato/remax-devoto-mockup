@@ -42,7 +42,7 @@ const VIAS: { id: Via; titulo: string; detalle: string }[] = [
   {
     id: "pedir",
     titulo: "Pedirle la adenda al agente",
-    detalle: "Se mueve la fecha y le sale un correo al asesor para que la genere y quede registrada.",
+    detalle: "Se mueve la fecha y le sale un correo al agente para que la genere y quede registrada.",
   },
   {
     id: "constancia",
@@ -349,7 +349,7 @@ export default function Expediente() {
         <div className="shrink-0 flex items-center gap-2.5 px-4 py-2.5 border-b border-[var(--lacre-borde)] bg-[var(--lacre-tenue)]/60">
           <Icono n="alerta" s={15} className="text-[var(--lacre)] shrink-0" />
           <p className="text-[12.5px] text-[var(--tinta-media)] flex-1">
-            El asesor pidió dar de baja este expediente.
+            El agente pidió dar de baja este expediente.
           </p>
           <Boton chico tono="primario" ico="tilde" onClick={() => d({ t: "registro.aprobarBaja", registroId: r.id })}>
             Aprobar baja
@@ -541,7 +541,7 @@ export default function Expediente() {
           {r.observaciones && (
             <div className="mt-3 rounded-[var(--r-sm)] border border-[var(--ambar-borde)] bg-[var(--ambar-tenue)]/60 px-3 py-2">
               <p className="rotulo" style={{ color: "var(--ambar)" }}>
-                Observaciones del asesor
+                Observaciones del agente
               </p>
               <p className="text-[12.5px] text-[var(--tinta-media)] mt-1">{r.observaciones}</p>
             </div>

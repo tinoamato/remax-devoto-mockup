@@ -288,9 +288,9 @@ export const reglasIniciales: Regla[] = [
   },
   {
     id: "contacto",
-    titulo: "Último contacto con el asesor",
+    titulo: "Último contacto con el agente",
     detalle:
-      "Avisa cuando se está por cumplir el tope de días sin contacto con un asesor, y cuando ya se cumplió. Este no le llega al asesor.",
+      "Avisa cuando se está por cumplir el tope de días sin contacto con un agente, y cuando ya se cumplió. Este no le llega al agente.",
     activa: true,
     diasAntes: 3,
     aAsesor: false,
@@ -381,19 +381,19 @@ function armarRegistro(s: Semilla): Registro {
   ];
 
   const historial: Evento[] = [
-    ev(gen, "generado", `Documento generado y registrado por el asesor.`, "Asesor"),
+    ev(gen, "generado", `Documento generado y registrado por el agente.`, "Agente"),
   ];
   if (!s.pendiente) {
     historial.push(ev(gen + 1800_000, "estado", "Gerencia le dio el alta. Ya cuenta para las métricas.", "Gerencia"));
   }
   if (s.bajaPedida) {
     historial.push(
-      ev(gen + 2 * dia, "nota", "El asesor pidió dar de baja el expediente, pendiente de que gerencia lo apruebe.", "Asesor"),
+      ev(gen + 2 * dia, "nota", "El agente pidió dar de baja el expediente, pendiente de que gerencia lo apruebe.", "Agente"),
     );
   }
   if (s.generadoHace > 25) {
     historial.push(
-      ev(gen + 3 * dia, "aviso", "Aviso previo enviado al asesor, con copia oculta a gerencia.", "Automatización"),
+      ev(gen + 3 * dia, "aviso", "Aviso previo enviado al agente, con copia oculta a gerencia.", "Automatización"),
       ev(gen + 6 * dia, "adenda", "Adenda por 30 días sobre la aceptación de la reserva.", "Gerencia"),
     );
   }

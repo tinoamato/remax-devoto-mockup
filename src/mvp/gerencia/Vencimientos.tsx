@@ -142,7 +142,7 @@ export default function Vencimientos() {
                 <select
                   value={asesorId}
                   onChange={(ev) => setAsesorId(ev.target.value)}
-                  aria-label="Filtrar por asesor"
+                  aria-label="Filtrar por agente"
                   className="h-7 pl-2 pr-6 text-[12px] rounded-[var(--r-sm)] border border-[var(--linea-fuerte)] bg-[var(--papel-alto)] outline-none focus:border-[var(--sello)] appearance-none cursor-pointer"
                   style={{
                     backgroundImage:
@@ -151,7 +151,7 @@ export default function Vencimientos() {
                     backgroundPosition: "right 5px center",
                   }}
                 >
-                  <option value="">Todos los asesores</option>
+                  <option value="">Todos los agentes</option>
                   {e.asesores.map((a) => (
                     <option key={a.id} value={a.id}>
                       {a.nombre}
@@ -223,7 +223,7 @@ export default function Vencimientos() {
                       Plazo y propiedad
                     </ThOrden>
                     <ThOrden campo="asesor" orden={orden} ancho={168}>
-                      Asesor
+                      Agente
                     </ThOrden>
                     <ThOrden campo="contraparte" orden={orden} ancho={150}>
                       Otra parte
