@@ -638,9 +638,6 @@ export default function Facturacion() {
                         key={p.asesor.id}
                         onClick={() => setDetalle(p)}
                         className="cursor-pointer hover:bg-[var(--papel-hundido)]/50 transition-colors"
-                        style={
-                          !p.nuevo && t.estado === "bajo" ? { background: "var(--lacre-tenue)" } : undefined
-                        }
                       >
                         <Td>
                           <span className="flex items-center gap-2.5">

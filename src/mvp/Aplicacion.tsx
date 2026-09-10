@@ -5,6 +5,7 @@ import { cn } from "../lib/format";
 import { Inicial, Menu, ItemMenu } from "../components/ui";
 import { NavProveedor, useNav, type VistaAsesor, type VistaGerencia } from "./nav";
 import { Proveedor, useApp, useDerivados, type Aviso } from "./tienda";
+import { useTema } from "./tema";
 import Generador from "./asesor/Generador";
 import MisRegistros from "./asesor/MisRegistros";
 import Vencimientos from "./gerencia/Vencimientos";
@@ -139,6 +140,7 @@ function BarraSuperior() {
       </div>
 
       <div className="ml-auto flex items-center gap-2">
+        <BotonTema />
         {nav.modo === "asesor" ? (
           <Menu
             disparador={(abrir) => (
@@ -179,6 +181,22 @@ function BarraSuperior() {
         )}
       </div>
     </header>
+  );
+}
+
+function BotonTema() {
+  const { activo, alternar } = useTema();
+  const oscuro = activo === "oscuro";
+  return (
+    <button
+      type="button"
+      onClick={alternar}
+      aria-label={oscuro ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+      title={oscuro ? "Modo claro" : "Modo oscuro"}
+      className="flex items-center justify-center size-8 rounded-[var(--r-sm)] text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+    >
+      <Icono n={oscuro ? "sol" : "luna"} s={16} />
+    </button>
   );
 }
 

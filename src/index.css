@@ -48,7 +48,89 @@
   --r-md: 6px;
   --r-lg: 10px;
 
+  /* Tinte de sombra/anillo — se invierte en modo oscuro */
+  --sombra-tinta: 26 25 23;
+  --anillo-tinta: 26 25 23;
+
   color-scheme: light;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Modo oscuro — mismo sistema, luminosidad invertida.
+   Sigue las mismas reglas: un solo matiz por rol, un solo
+   acento, nunca gradientes ni sombras dramáticas.
+   ───────────────────────────────────────────────────────────── */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --papel: #17160f;
+    --papel-alto: #201f18;
+    --papel-hundido: #121109;
+    --papel-marca: #100f0a;
+
+    --tinta: #ecead2;
+    --tinta-media: #b3af9a;
+    --tinta-suave: #837f6c;
+    --tinta-tenue: #5a5748;
+
+    --linea: #322f22;
+    --linea-suave: #26241a;
+    --linea-fuerte: #423e2c;
+
+    --sello: #5b9bd8;
+    --sello-alto: #72abe0;
+    --sello-tenue: #17232f;
+    --sello-borde: #2c465e;
+
+    --lacre: #d9705a;
+    --lacre-tenue: #2c1a14;
+    --lacre-borde: #4a2c22;
+    --ambar: #cc9f4c;
+    --ambar-tenue: #2b2312;
+    --ambar-borde: #4a3c1f;
+    --verde: #57b18f;
+    --verde-tenue: #142720;
+    --verde-borde: #244438;
+
+    --sombra-tinta: 0 0 0;
+    --anillo-tinta: 255 255 255;
+
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --papel: #17160f;
+  --papel-alto: #201f18;
+  --papel-hundido: #121109;
+  --papel-marca: #100f0a;
+
+  --tinta: #ecead2;
+  --tinta-media: #b3af9a;
+  --tinta-suave: #837f6c;
+  --tinta-tenue: #5a5748;
+
+  --linea: #322f22;
+  --linea-suave: #26241a;
+  --linea-fuerte: #423e2c;
+
+  --sello: #5b9bd8;
+  --sello-alto: #72abe0;
+  --sello-tenue: #17232f;
+  --sello-borde: #2c465e;
+
+  --lacre: #d9705a;
+  --lacre-tenue: #2c1a14;
+  --lacre-borde: #4a2c22;
+  --ambar: #cc9f4c;
+  --ambar-tenue: #2b2312;
+  --ambar-borde: #4a3c1f;
+  --verde: #57b18f;
+  --verde-tenue: #142720;
+  --verde-borde: #244438;
+
+  --sombra-tinta: 0 0 0;
+  --anillo-tinta: 255 255 255;
+
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -146,18 +228,16 @@ p { text-wrap: pretty; margin: 0; }
 .sin-scroll::-webkit-scrollbar { display: none; }
 .sin-scroll { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* Elevación: un anillo de 1px + dos capas suaves. Nada dramático. */
+/* Elevación: un anillo de 1px + una sombra suave. Nada dramático. */
 .alza {
   box-shadow:
-    0 0 0 1px rgb(26 25 23 / 0.06),
-    0 1px 2px -1px rgb(26 25 23 / 0.06),
-    0 2px 6px rgb(26 25 23 / 0.04);
+    0 0 0 1px rgb(var(--anillo-tinta) / 0.06),
+    0 1px 3px rgb(var(--sombra-tinta) / 0.05);
 }
 .alza-alta {
   box-shadow:
-    0 0 0 1px rgb(26 25 23 / 0.08),
-    0 4px 10px -4px rgb(26 25 23 / 0.12),
-    0 12px 32px -8px rgb(26 25 23 / 0.14);
+    0 0 0 1px rgb(var(--anillo-tinta) / 0.09),
+    0 8px 24px -8px rgb(var(--sombra-tinta) / 0.22);
 }
 
 /* Trama de papel: textura mínima que evita el "blanco de plantilla" */

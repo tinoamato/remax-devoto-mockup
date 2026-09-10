@@ -239,7 +239,6 @@ export default function Vencimientos() {
                       key={`${f.registro.id}-${f.plazo.id}`}
                       onClick={() => nav.abrirExpediente(f.registro.id)}
                       className="cursor-pointer hover:bg-[var(--papel-hundido)]/50 transition-colors duration-[120ms]"
-                      style={f.urgencia === "vencida" ? { background: "var(--lacre-tenue)" } : undefined}
                     >
                       <Td>
                         <Cuenta vence={f.plazo.vence} ahora={e.ahora} />
