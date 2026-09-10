@@ -1,11 +1,22 @@
 import { useMemo, useState, type MouseEvent } from "react";
 import { useApp, useDerivados } from "../tienda";
 import { useNav } from "../nav";
-import { plantillaPorId } from "../plantillas";
+import { plantillaPorId, plantillas } from "../plantillas";
 import { Boton, Buscador, CabezaPanel, Etiqueta, Inicial, Panel, Vacio } from "../../components/ui";
 import { Icono } from "../../lib/icons";
 import { fechaHora, hace } from "../../lib/format";
 import type { Adenda, Asesor, Registro } from "../datos";
+
+const ID_PLANTILLA_ADENDA = plantillas.find((p) => p.esAdenda)?.id ?? "adenda";
+
+const selector =
+  "h-7 pl-2 pr-6 text-[12px] rounded-[var(--r-sm)] border border-[var(--linea-fuerte)] bg-[var(--papel-alto)] outline-none focus:border-[var(--sello)] appearance-none cursor-pointer";
+const flecha = {
+  backgroundImage:
+    "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%2378746A' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='m4 6.5 4 4 4-4'/></svg>\")",
+  backgroundRepeat: "no-repeat" as const,
+  backgroundPosition: "right 5px center",
+};
 
 function FilaRegistro({
   r,
@@ -116,12 +127,16 @@ export default function Documentos() {
   const nav = useNav();
   const { registrosNuevos, adendasNuevas } = useDerivados();
   const [q, setQ] = useState("");
+  const [tipo, setTipo] = useState("");
+  const [asesorId, setAsesorId] = useState("");
 
-  const nombreAgente = (asesorId: string) => e.asesores.find((a) => a.id === asesorId)?.nombre ?? "";
+  const nombreAgente = (id: string) => e.asesores.find((a) => a.id === id)?.nombre ?? "";
 
   const registros = useMemo(() => {
     const t = q.trim().toLowerCase();
     return [...registrosNuevos]
+      .filter((r) => !tipo || r.plantillaId === tipo)
+      .filter((r) => !asesorId || r.asesorId === asesorId)
       .filter(
         (r) =>
           !t ||
@@ -129,22 +144,43 @@ export default function Documentos() {
       )
       .sort((a, b) => b.generadoEn - a.generadoEn);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [registrosNuevos, q, e.asesores]);
+  }, [registrosNuevos, q, tipo, asesorId, e.asesores]);
 
   const adendas = useMemo(() => {
     const t = q.trim().toLowerCase();
     return adendasNuevas
       .map((ad) => ({ ad, reg: e.registros.find((r) => r.id === ad.registroId) }))
       .filter((x): x is { ad: Adenda; reg: Registro } => Boolean(x.reg))
+      .filter(() => !tipo || tipo === ID_PLANTILLA_ADENDA)
+      .filter(({ reg }) => !asesorId || reg.asesorId === asesorId)
       .filter(
         ({ ad, reg }) =>
           !t || `${ad.id} ${reg.id} ${reg.direccion} ${nombreAgente(reg.asesorId)}`.toLowerCase().includes(t),
       )
       .sort((a, b) => b.ad.ts - a.ad.ts);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [adendasNuevas, q, e.registros, e.asesores]);
+  }, [adendasNuevas, q, tipo, asesorId, e.registros, e.asesores]);
 
   const total = registros.length + adendas.length;
+  const hayPendientes = registrosNuevos.length + adendasNuevas.length > 0;
+  const hayFiltro = Boolean(q || tipo || asesorId);
+  const limpiar = () => {
+    setQ("");
+    setTipo("");
+    setAsesorId("");
+  };
+
+  const idsPendientes = new Set<string>([
+    ...registrosNuevos.map((r) => r.plantillaId),
+    ...(adendasNuevas.length > 0 ? [ID_PLANTILLA_ADENDA] : []),
+  ]);
+  const usadas = plantillas.filter((p) => idsPendientes.has(p.id));
+
+  const agentesConPendientes = new Set<string>([
+    ...registrosNuevos.map((r) => r.asesorId),
+    ...adendasNuevas.map((ad) => e.registros.find((r) => r.id === ad.registroId)?.asesorId).filter((x): x is string => Boolean(x)),
+  ]);
+  const agentes = e.asesores.filter((a) => agentesConPendientes.has(a.id));
 
   return (
     <div className="h-full overflow-y-auto scroll p-4">
@@ -160,11 +196,44 @@ export default function Documentos() {
           corren (no cuentan para Vencimientos ni métricas) hasta que lo validés acá.
         </p>
 
+        {hayPendientes && (
+          <div className="flex flex-wrap items-center gap-1.5 px-3.5 py-2 border-b border-[var(--linea-suave)]">
+            <select value={tipo} onChange={(ev) => setTipo(ev.target.value)} aria-label="Filtrar por tipo de documento" className={selector} style={flecha}>
+              <option value="">Todos los documentos</option>
+              {usadas.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.nombre}
+                </option>
+              ))}
+            </select>
+
+            <select value={asesorId} onChange={(ev) => setAsesorId(ev.target.value)} aria-label="Filtrar por agente" className={selector} style={flecha}>
+              <option value="">Todos los agentes</option>
+              {agentes.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.nombre}
+                </option>
+              ))}
+            </select>
+
+            {hayFiltro && (
+              <Boton chico tono="fantasma" ico="cruz" className="ml-auto" onClick={limpiar}>
+                Limpiar
+              </Boton>
+            )}
+          </div>
+        )}
+
         {total === 0 ? (
           <Vacio
             ico="documento"
-            titulo="No hay documentos pendientes de validar"
-            detalle="Cuando un agente registre una reserva o una adenda, va a aparecer acá."
+            titulo={hayFiltro ? "No hay documentos con ese filtro" : "No hay documentos pendientes de validar"}
+            detalle={
+              hayFiltro
+                ? undefined
+                : "Cuando un agente registre una reserva o una adenda, va a aparecer acá."
+            }
+            accion={hayFiltro ? { txt: "Ver todo", al: limpiar } : undefined}
           />
         ) : (
           <div className="divide-y divide-[var(--linea-suave)]">
