@@ -1,7 +1,23 @@
 import { useState } from "react";
 import type { Asesor } from "../datos";
 import { useApp } from "../tienda";
-import { Boton, CabezaPanel, Campo, Etiqueta, Inicial, ItemMenu, Menu, Modal, Panel, Vacio } from "../../components/ui";
+import {
+  Boton,
+  CabezaPanel,
+  Campo,
+  Etiqueta,
+  Inicial,
+  Modal,
+  Panel,
+  PistaScroll,
+  Td,
+  Th,
+  Vacio,
+} from "../../components/ui";
+import { Icono } from "../../lib/icons";
+import { cn } from "../../lib/format";
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /* ── Configuración de la oficina ────────────────────────────── */
 
@@ -9,7 +25,7 @@ function ConfiguracionOficina() {
   const { e, d } = useApp();
   const [email, setEmail] = useState(e.emailGerencia);
   const sucio = email.trim() !== e.emailGerencia;
-  const valido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  const valido = EMAIL_RE.test(email.trim());
 
   const guardar = () => {
     if (!valido) return;
@@ -19,37 +35,72 @@ function ConfiguracionOficina() {
   return (
     <Panel>
       <CabezaPanel titulo="Configuración de la oficina" />
-      <div className="p-3.5 space-y-3.5">
-        <div className="flex items-end gap-2 max-w-[440px]">
-          <Campo
-            rotulo="Correo de gerencia"
-            type="email"
-            value={email}
-            onChange={(ev) => setEmail(ev.target.value)}
-            className="flex-1"
-          />
-          <Boton tono="primario" disabled={!sucio || !valido} onClick={guardar}>
-            Guardar
-          </Boton>
-        </div>
-        {sucio && !valido && (
-          <p className="text-[11.5px] -mt-2" style={{ color: "var(--lacre)" }}>
-            Ese formato de correo no es válido.
-          </p>
-        )}
-        <p className="text-[11.5px] text-[var(--tinta-tenue)] max-w-[440px]">
-          Es la casilla que usan las automatizaciones de «Gerencia» y la que aparece en copia oculta cuando una regla
-          la esconde del agente.
-        </p>
+      <div className="p-4">
+        <div className="flex items-start gap-3">
+          <span className="grid place-items-center size-9 rounded-[var(--r-sm)] bg-[var(--sello-tenue)] border border-[var(--sello-borde)] shrink-0">
+            <Icono n="correo" s={16} className="text-[var(--sello)]" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-[13px] font-semibold">Correo de gerencia</p>
+            <p className="text-[11.5px] text-[var(--tinta-tenue)] mt-0.5 leading-relaxed">
+              Recibe (o va en copia oculta) los correos que mandan las automatizaciones cuando el destinatario es
+              «Gerencia».
+            </p>
 
-        <div className="pt-3 border-t border-[var(--linea-suave)]">
-          <p className="rotulo mb-1.5">Todavía no configurable acá</p>
-          <ul className="space-y-1 text-[12px] text-[var(--tinta-suave)]">
-            <li>· Remitente y firma que llevan los correos salientes</li>
-            <li>· Permisos: quién puede entrar como gerencia</li>
-            <li>· Más de un destinatario en copia para gerencia</li>
-          </ul>
+            <div className="flex items-end gap-2 mt-2.5">
+              <Campo
+                type="email"
+                value={email}
+                onChange={(ev) => setEmail(ev.target.value)}
+                aria-label="Correo de gerencia"
+                className="flex-1"
+              />
+              <Boton tono="primario" disabled={!sucio || !valido} onClick={guardar}>
+                Guardar
+              </Boton>
+            </div>
+            {sucio && !valido && (
+              <p className="text-[11.5px] mt-1.5" style={{ color: "var(--lacre)" }}>
+                Ese formato de correo no es válido.
+              </p>
+            )}
+          </div>
         </div>
+
+        <div className="mt-4 pt-3.5 border-t border-[var(--linea-suave)]">
+          <p className="rotulo mb-2">Todavía no configurable acá</p>
+          <div className="flex flex-wrap gap-1.5">
+            <Etiqueta t="neutro">Firma de los correos</Etiqueta>
+            <Etiqueta t="neutro">Permisos por usuario</Etiqueta>
+            <Etiqueta t="neutro">Copia a más de un correo</Etiqueta>
+          </div>
+        </div>
+      </div>
+    </Panel>
+  );
+}
+
+/* ── Resumen del equipo ─────────────────────────────────────── */
+
+function Cifra({ rotulo, valor, color }: { rotulo: string; valor: number; color?: string }) {
+  return (
+    <div className="px-4 py-3.5">
+      <p className="rotulo">{rotulo}</p>
+      <p className="num font-semibold leading-none mt-1.5 text-[26px]" style={{ color: color ?? "var(--tinta)" }}>
+        {valor}
+      </p>
+    </div>
+  );
+}
+
+function ResumenEquipo({ activos, bajas }: { activos: number; bajas: number }) {
+  return (
+    <Panel>
+      <CabezaPanel titulo="Resumen del equipo" />
+      <div className="grid grid-cols-3 divide-x divide-[var(--linea-suave)]">
+        <Cifra rotulo="Activos" valor={activos} color="var(--verde)" />
+        <Cifra rotulo="De baja" valor={bajas} color={bajas ? "var(--tinta-media)" : undefined} />
+        <Cifra rotulo="Total" valor={activos + bajas} />
       </div>
     </Panel>
   );
@@ -70,7 +121,7 @@ function ModalAgente({
   const [tope, setTope] = useState(agente?.topeContactoDias ?? 30);
 
   const nombreValido = nombre.trim().length > 1;
-  const emailValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  const emailValido = EMAIL_RE.test(email.trim());
   const puedeGuardar = nombreValido && emailValido && tope > 0;
 
   const guardar = () => {
@@ -111,80 +162,103 @@ function ModalAgente({
           max={90}
           value={tope}
           onChange={(ev) => setTope(Number(ev.target.value) || 1)}
-          className="w-[120px]"
+          className="w-[140px]"
         />
       </div>
     </Modal>
   );
 }
 
+/* ── Confirmar baja ─────────────────────────────────────────── */
+
+function ModalBaja({ a, cerrar }: { a: Asesor; cerrar: () => void }) {
+  const { d } = useApp();
+  return (
+    <Modal
+      titulo="Dar de baja al agente"
+      sub={a.nombre}
+      cerrar={cerrar}
+      ancho={420}
+      pie={
+        <>
+          <Boton onClick={cerrar}>Cancelar</Boton>
+          <Boton
+            tono="peligro"
+            ico="cruz"
+            onClick={() => {
+              d({ t: "agente.baja", asesorId: a.id });
+              cerrar();
+            }}
+          >
+            Dar de baja
+          </Boton>
+        </>
+      }
+    >
+      <p className="text-[13px] text-[var(--tinta-media)] leading-relaxed">
+        Deja de recibir correos automáticos y de contar en facturación proyectada y en cadencia de contacto. Se
+        puede reactivar en cualquier momento y conserva todo su historial.
+      </p>
+    </Modal>
+  );
+}
+
 /* ── Fila de agente ─────────────────────────────────────────── */
 
-function FilaAgente({ a, onEditar }: { a: Asesor; onEditar: () => void }) {
+function FilaAgente({
+  a,
+  onEditar,
+  onBaja,
+}: {
+  a: Asesor;
+  onEditar: () => void;
+  onBaja: () => void;
+}) {
   const { d } = useApp();
 
   return (
-    <li className="flex items-center gap-3 px-3.5 py-2.5 border-b border-[var(--linea-suave)] last:border-b-0">
-      <Inicial txt={a.iniciales} s={32} />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2 flex-wrap">
-          <h3 className="text-[13.5px] font-semibold truncate">{a.nombre}</h3>
-          {!a.activo && <Etiqueta t="neutro">de baja</Etiqueta>}
+    <tr className={cn(!a.activo && "opacity-60")}>
+      <Td>
+        <div className="flex items-center gap-2.5">
+          <Inicial txt={a.iniciales} s={30} />
+          <div className="min-w-0">
+            <p className="font-medium truncate">{a.nombre}</p>
+            <p className="text-[11.5px] text-[var(--tinta-tenue)] truncate">{a.email}</p>
+          </div>
         </div>
-        <p className="text-[12px] text-[var(--tinta-suave)] truncate">{a.email}</p>
-      </div>
-      <div className="hidden sm:block text-right shrink-0 w-[120px]">
-        <p className="num text-[12.5px] text-[var(--tinta-media)]">
-          {a.antiguedadMeses} {a.antiguedadMeses === 1 ? "mes" : "meses"}
-        </p>
-        <p className="text-[11px] text-[var(--tinta-tenue)]">en la oficina</p>
-      </div>
-      <div className="hidden md:block text-right shrink-0 w-[110px]">
-        <p className="num text-[12.5px] text-[var(--tinta-media)]">{a.topeContactoDias} días</p>
-        <p className="text-[11px] text-[var(--tinta-tenue)]">tope de contacto</p>
-      </div>
-      <Menu
-        disparador={(abrir) => (
-          <Boton chico tono="fantasma" ico="puntos" onClick={abrir} aria-label={`Acciones para ${a.nombre}`} />
-        )}
-      >
-        {(cerrarMenu) => (
-          <>
-            <ItemMenu
-              ico="ajustes"
-              onClick={() => {
-                onEditar();
-                cerrarMenu();
-              }}
-            >
-              Editar datos
-            </ItemMenu>
-            {a.activo ? (
-              <ItemMenu
-                ico="cruz"
-                peligro
-                onClick={() => {
-                  d({ t: "agente.baja", asesorId: a.id });
-                  cerrarMenu();
-                }}
-              >
-                Dar de baja
-              </ItemMenu>
-            ) : (
-              <ItemMenu
-                ico="tilde"
-                onClick={() => {
-                  d({ t: "agente.reactivar", asesorId: a.id });
-                  cerrarMenu();
-                }}
-              >
-                Reactivar
-              </ItemMenu>
-            )}
-          </>
-        )}
-      </Menu>
-    </li>
+      </Td>
+      <Td>
+        <label className="inline-flex items-center gap-1.5 text-[12.5px] text-[var(--tinta-media)]">
+          <input
+            type="number"
+            min={1}
+            disabled={!a.activo}
+            value={a.topeContactoDias}
+            onChange={(ev) => d({ t: "contacto.tope", asesorId: a.id, dias: Number(ev.target.value) || 1 })}
+            aria-label={`Tope de días para ${a.nombre}`}
+            className="num w-[52px] h-7 px-1.5 rounded-[var(--r-xs)] border border-[var(--linea-fuerte)] bg-[var(--papel-hundido)] text-[12.5px] font-semibold outline-none focus:bg-[var(--papel-alto)] focus:border-[var(--sello)] disabled:opacity-50"
+          />
+          días
+        </label>
+      </Td>
+      <Td>{a.activo ? <Etiqueta t="ok">Activo</Etiqueta> : <Etiqueta t="neutro">De baja</Etiqueta>}</Td>
+      <Td alDer>
+        <div className="flex items-center justify-end gap-1.5">
+          <Boton chico tono="secundario" ico="ajustes" onClick={onEditar}>
+            Editar
+          </Boton>
+          {a.activo ? (
+            <Boton chico tono="peligro" ico="cruz" onClick={onBaja}>
+              Dar de baja
+            </Boton>
+          ) : (
+            <Boton chico tono="primario" ico="tilde" onClick={() => d({ t: "agente.reactivar", asesorId: a.id })}>
+              Reactivar
+            </Boton>
+          )}
+        </div>
+      </Td>
+    </tr>
   );
 }
 
@@ -194,15 +268,21 @@ export default function Equipo() {
   const { e } = useApp();
   const [alta, setAlta] = useState(false);
   const [editarId, setEditarId] = useState<string | null>(null);
+  const [bajaId, setBajaId] = useState<string | null>(null);
 
   const activos = e.asesores.filter((a) => a.activo);
   const bajas = e.asesores.filter((a) => !a.activo);
+  const ordenados = [...activos, ...bajas];
   const editando = editarId ? e.asesores.find((a) => a.id === editarId) ?? null : null;
+  const dandoBaja = bajaId ? e.asesores.find((a) => a.id === bajaId) ?? null : null;
 
   return (
     <div className="h-full overflow-y-auto scroll p-4">
-      <div className="max-w-[760px] mx-auto space-y-4">
-        <ConfiguracionOficina />
+      <div className="max-w-[1400px] mx-auto space-y-4">
+        <div className="grid gap-4 xl:grid-cols-[1fr_360px] items-start">
+          <ConfiguracionOficina />
+          <ResumenEquipo activos={activos.length} bajas={bajas.length} />
+        </div>
 
         <Panel>
           <CabezaPanel
@@ -218,23 +298,31 @@ export default function Equipo() {
             <Vacio ico="equipo" titulo="Todavía no hay agentes cargados" />
           ) : (
             <>
-              <ul>
-                {activos.map((a) => (
-                  <FilaAgente key={a.id} a={a} onEditar={() => setEditarId(a.id)} />
-                ))}
-              </ul>
-              {bajas.length > 0 && (
-                <>
-                  <p className="rotulo px-3.5 py-1.5 bg-[var(--papel-hundido)]/60 border-y border-[var(--linea-suave)]">
-                    De baja · {bajas.length}
-                  </p>
-                  <ul>
-                    {bajas.map((a) => (
-                      <FilaAgente key={a.id} a={a} onEditar={() => setEditarId(a.id)} />
+              <PistaScroll />
+              <div className="overflow-x-auto scroll">
+                <table className="w-full min-w-[640px] border-collapse">
+                  <thead>
+                    <tr>
+                      <Th>Agente</Th>
+                      <Th ancho={150}>Tope de contacto</Th>
+                      <Th ancho={110}>Estado</Th>
+                      <Th ancho={220} alDer>
+                        Acciones
+                      </Th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ordenados.map((a) => (
+                      <FilaAgente
+                        key={a.id}
+                        a={a}
+                        onEditar={() => setEditarId(a.id)}
+                        onBaja={() => setBajaId(a.id)}
+                      />
                     ))}
-                  </ul>
-                </>
-              )}
+                  </tbody>
+                </table>
+              </div>
             </>
           )}
         </Panel>
@@ -242,6 +330,7 @@ export default function Equipo() {
 
       {alta && <ModalAgente agente={null} cerrar={() => setAlta(false)} />}
       {editando && <ModalAgente agente={editando} cerrar={() => setEditarId(null)} />}
+      {dandoBaja && <ModalBaja a={dandoBaja} cerrar={() => setBajaId(null)} />}
     </div>
   );
 }

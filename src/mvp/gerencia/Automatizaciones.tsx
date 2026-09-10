@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { type Regla } from "../datos";
 import { useApp } from "../tienda";
-import { Boton, CabezaPanel, Etiqueta, Panel } from "../../components/ui";
+import { Boton, Etiqueta, Panel } from "../../components/ui";
 import { Icono } from "../../lib/icons";
 import { cn } from "../../lib/format";
 
@@ -70,8 +70,8 @@ function TarjetaRegla({ r }: { r: Regla }) {
   };
 
   return (
-    <li className="border-b border-[var(--linea-suave)] last:border-b-0">
-      <div className="flex items-start gap-3 px-3.5 py-3">
+    <Panel className="flex flex-col">
+      <div className="flex items-start gap-3 px-4 py-3.5">
         <Interruptor
           on={r.activa}
           rotulo={`Activar ${r.titulo}`}
@@ -79,90 +79,92 @@ function TarjetaRegla({ r }: { r: Regla }) {
         />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <h3 className={cn("text-[13.5px] font-semibold", !r.activa && "text-[var(--tinta-tenue)]")}>
+            <h3 className={cn("text-[14.5px] font-semibold", !r.activa && "text-[var(--tinta-tenue)]")}>
               {r.titulo}
             </h3>
             {!r.activa && <Etiqueta t="neutro">apagada</Etiqueta>}
           </div>
-          <p className="text-[12px] text-[var(--tinta-suave)] mt-0.5">{r.detalle}</p>
-
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2">
-            {r.id !== "vencido" && (
-              <label className="flex items-center gap-1.5 text-[12px] text-[var(--tinta-media)]">
-                <span>{r.id === "resumen" ? "Mira los próximos" : "Avisa"}</span>
-                <input
-                  type="number"
-                  min={0}
-                  max={30}
-                  value={r.diasAntes}
-                  onChange={(ev) =>
-                    d({ t: "regla.set", id: r.id, cambio: { diasAntes: Number(ev.target.value) || 0 } })
-                  }
-                  aria-label="Días de anticipación"
-                  className="num w-[54px] h-7 px-1.5 rounded-[var(--r-xs)] border border-[var(--linea-fuerte)] bg-[var(--papel-hundido)] text-[12.5px] font-semibold outline-none focus:bg-[var(--papel-alto)] focus:border-[var(--sello)]"
-                />
-                <span>{r.id === "resumen" ? "días" : "días antes"}</span>
-              </label>
-            )}
-
-            <span className="flex items-center gap-1.5 text-[12px] text-[var(--tinta-media)]">
-              <Icono n="correo" s={13} className="text-[var(--tinta-tenue)]" />
-              {destinatarios.map((x, i) => (
-                <span key={i} className="flex items-center gap-1">
-                  {i > 0 && <span className="text-[var(--tinta-tenue)]">+</span>}
-                  {x.txt}
-                  {x.oculto && (
-                    <span
-                      className="inline-flex items-center gap-1 text-[10.5px] px-1 h-[16px] rounded-[2px] border"
-                      style={{
-                        color: "var(--sello)",
-                        borderColor: "var(--sello-borde)",
-                        background: "var(--sello-tenue)",
-                      }}
-                      title="El agente no ve que gerencia está en copia"
-                    >
-                      <Icono n="candado" s={9} />
-                      en oculto
-                    </span>
-                  )}
-                </span>
-              ))}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2 mt-2">
-            <Boton chico tono="fantasma" ico={abierto ? "chevArriba" : "chevAbajo"} onClick={() => setAbierto((v) => !v)}>
-              {abierto ? "Ocultar el correo" : "Ver el correo que sale"}
-            </Boton>
-            <Boton chico ico="enviar" onClick={() => d({ t: "regla.probar", id: r.id })}>
-              Probar
-            </Boton>
-          </div>
-
-          {abierto && (
-            <div className="mt-2 rounded-[var(--r-sm)] border border-[var(--linea)] bg-[var(--papel-hundido)]/50 overflow-hidden">
-              <div className="px-3 py-2 border-b border-[var(--linea-suave)] bg-[var(--papel-alto)]">
-                <p className="text-[11.5px] text-[var(--tinta-tenue)]">
-                  Para:{" "}
-                  <span className="text-[var(--tinta-media)]">
-                    {r.aAsesor ? asesor.email : r.aGerencia && !r.gerenciaOculta ? e.emailGerencia : "—"}
-                  </span>
-                </p>
-                {r.aGerencia && r.gerenciaOculta && (
-                  <p className="text-[11.5px] text-[var(--tinta-tenue)]">
-                    CCO: <span className="text-[var(--tinta-media)]">{e.emailGerencia}</span>
-                  </p>
-                )}
-                <p className="text-[12.5px] font-semibold mt-1">{ejemplo[r.id].asunto}</p>
-              </div>
-              <p className="px-3 py-2.5 text-[12.5px] text-[var(--tinta-media)] leading-relaxed">
-                {ejemplo[r.id].cuerpo}
-              </p>
-            </div>
-          )}
+          <p className="text-[12.5px] text-[var(--tinta-suave)] mt-1 leading-relaxed">{r.detalle}</p>
         </div>
       </div>
-    </li>
+
+      <div className="px-4 pb-3.5 mt-auto">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2.5 py-3 border-t border-[var(--linea-suave)]">
+          {r.id !== "vencido" && (
+            <label className="flex items-center gap-1.5 text-[12.5px] text-[var(--tinta-media)]">
+              <span>{r.id === "resumen" ? "Mira los próximos" : "Avisa"}</span>
+              <input
+                type="number"
+                min={0}
+                max={30}
+                value={r.diasAntes}
+                onChange={(ev) =>
+                  d({ t: "regla.set", id: r.id, cambio: { diasAntes: Number(ev.target.value) || 0 } })
+                }
+                aria-label="Días de anticipación"
+                className="num w-[56px] h-7 px-1.5 rounded-[var(--r-xs)] border border-[var(--linea-fuerte)] bg-[var(--papel-hundido)] text-[12.5px] font-semibold outline-none focus:bg-[var(--papel-alto)] focus:border-[var(--sello)]"
+              />
+              <span>{r.id === "resumen" ? "días" : "días antes"}</span>
+            </label>
+          )}
+
+          <span className="flex items-center gap-1.5 text-[12.5px] text-[var(--tinta-media)]">
+            <Icono n="correo" s={13} className="text-[var(--tinta-tenue)]" />
+            {destinatarios.map((x, i) => (
+              <span key={i} className="flex items-center gap-1">
+                {i > 0 && <span className="text-[var(--tinta-tenue)]">+</span>}
+                {x.txt}
+                {x.oculto && (
+                  <span
+                    className="inline-flex items-center gap-1 text-[10.5px] px-1 h-[16px] rounded-[2px] border"
+                    style={{
+                      color: "var(--sello)",
+                      borderColor: "var(--sello-borde)",
+                      background: "var(--sello-tenue)",
+                    }}
+                    title="El agente no ve que gerencia está en copia"
+                  >
+                    <Icono n="candado" s={9} />
+                    en oculto
+                  </span>
+                )}
+              </span>
+            ))}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Boton chico tono="fantasma" ico={abierto ? "chevArriba" : "chevAbajo"} onClick={() => setAbierto((v) => !v)}>
+            {abierto ? "Ocultar el correo" : "Ver el correo que sale"}
+          </Boton>
+          <Boton chico ico="enviar" onClick={() => d({ t: "regla.probar", id: r.id })}>
+            Probar
+          </Boton>
+        </div>
+
+        {abierto && (
+          <div className="mt-3 rounded-[var(--r-sm)] border border-[var(--linea)] bg-[var(--papel-hundido)]/50 overflow-hidden">
+            <div className="px-3 py-2 border-b border-[var(--linea-suave)] bg-[var(--papel-alto)]">
+              <p className="text-[11.5px] text-[var(--tinta-tenue)]">
+                Para:{" "}
+                <span className="text-[var(--tinta-media)]">
+                  {r.aAsesor ? asesor.email : r.aGerencia && !r.gerenciaOculta ? e.emailGerencia : "—"}
+                </span>
+              </p>
+              {r.aGerencia && r.gerenciaOculta && (
+                <p className="text-[11.5px] text-[var(--tinta-tenue)]">
+                  CCO: <span className="text-[var(--tinta-media)]">{e.emailGerencia}</span>
+                </p>
+              )}
+              <p className="text-[12.5px] font-semibold mt-1">{ejemplo[r.id].asunto}</p>
+            </div>
+            <p className="px-3 py-2.5 text-[12.5px] text-[var(--tinta-media)] leading-relaxed">
+              {ejemplo[r.id].cuerpo}
+            </p>
+          </div>
+        )}
+      </div>
+    </Panel>
   );
 }
 
@@ -170,19 +172,22 @@ function TarjetaRegla({ r }: { r: Regla }) {
 
 export default function Automatizaciones() {
   const { e } = useApp();
+  const activas = e.reglas.filter((r) => r.activa).length;
 
   return (
     <div className="h-full overflow-y-auto scroll p-4">
-      <div className="max-w-[700px] mx-auto">
-        {/* Reglas */}
-        <Panel>
-          <CabezaPanel titulo="Qué correos salen solos" cuenta={e.reglas.filter((r) => r.activa).length} />
-          <ul>
-            {e.reglas.map((r) => (
-              <TarjetaRegla key={r.id} r={r} />
-            ))}
-          </ul>
-        </Panel>
+      <div className="max-w-[1400px] mx-auto">
+        <div className="flex items-center gap-2 mb-3">
+          <h2 className="rotulo">Qué correos salen solos</h2>
+          <span className="num text-[11px] text-[var(--tinta-tenue)]">
+            {activas} de {e.reglas.length} activas
+          </span>
+        </div>
+        <div className="grid gap-3.5 xl:grid-cols-2">
+          {e.reglas.map((r) => (
+            <TarjetaRegla key={r.id} r={r} />
+          ))}
+        </div>
       </div>
     </div>
   );
