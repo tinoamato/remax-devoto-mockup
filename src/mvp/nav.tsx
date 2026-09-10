@@ -4,6 +4,7 @@ export type Modo = "asesor" | "gerencia";
 export type VistaAsesor = "generar" | "registros";
 export type VistaGerencia =
   | "vencimientos"
+  | "documentos"
   | "reservas"
   | "facturacion"
   | "automatizaciones"

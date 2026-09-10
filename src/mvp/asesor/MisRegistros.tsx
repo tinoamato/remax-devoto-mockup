@@ -110,7 +110,7 @@ export default function MisRegistros() {
             <Vacio
               ico="expediente"
               titulo="Todavía no registraste ningún documento"
-              detalle="Cuando generes una reserva y le des Registrar, va a aparecer acá con sus plazos corriendo."
+              detalle="Cuando generes una reserva y le des Registrar, va a aparecer acá, pendiente de que gerencia la valide para que sus plazos empiecen a correr."
               accion={{ txt: "Generar el primero", al: () => nav.irAsesor("generar") }}
             />
           </Panel>
@@ -161,7 +161,7 @@ export default function MisRegistros() {
 
                       {(!r.aprobado || r.bajaPedida) && (
                         <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                          {!r.aprobado && <Etiqueta t="hoy">Pendiente de alta</Etiqueta>}
+                          {!r.aprobado && <Etiqueta t="hoy">Pendiente de validar</Etiqueta>}
                           {r.bajaPedida && <Etiqueta t="vencida">Baja pedida</Etiqueta>}
                         </div>
                       )}

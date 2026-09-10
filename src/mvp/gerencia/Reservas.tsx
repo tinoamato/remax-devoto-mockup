@@ -20,11 +20,10 @@ import { Icono } from "../../lib/icons";
 import { cn, fechaHora, hace } from "../../lib/format";
 import type { EstadoRegistro, Jurisdiccion, Registro } from "../datos";
 
-type FiltroEstado = EstadoRegistro | "" | "nuevas";
+type FiltroEstado = EstadoRegistro | "";
 
 const ESTADOS: [FiltroEstado, string][] = [
   ["", "Todas"],
-  ["nuevas", "Nuevas"],
   ["vigente", "Vigentes"],
   ["cerrado", "Cerradas"],
   ["caido", "Caídas"],
@@ -50,7 +49,8 @@ export default function Reservas() {
   const filas = useMemo(() => {
     const t = q.trim().toLowerCase();
     const base = expedientes
-      .filter((r) => !estado || (estado === "nuevas" ? !r.aprobado : r.estado === estado))
+      .filter((r) => r.aprobado)
+      .filter((r) => !estado || r.estado === estado)
       .filter((r) => !tipo || r.plantillaId === tipo)
       .filter((r) => !asesorId || r.asesorId === asesorId)
       .filter((r) => !jur || r.jurisdiccion === jur)
@@ -236,23 +236,8 @@ export default function Reservas() {
                               {r.estado === "cerrado" ? "Cerrada" : r.estado === "caido" ? "Caída" : "Eliminada"}
                             </Etiqueta>
                           )}
-                          {!r.aprobado && <Etiqueta t="hoy">Nueva</Etiqueta>}
                           {r.bajaPedida && <Etiqueta t="vencida">Baja pedida</Etiqueta>}
                         </span>
-                        {!r.aprobado && (
-                          <Boton
-                            chico
-                            tono="primario"
-                            ico="tilde"
-                            className="mt-1.5"
-                            onClick={(ev) => {
-                              ev.stopPropagation();
-                              d({ t: "registro.aprobar", registroId: r.id });
-                            }}
-                          >
-                            Dar de alta
-                          </Boton>
-                        )}
                         {r.bajaPedida && (
                           <Boton
                             chico
@@ -336,8 +321,11 @@ export default function Reservas() {
       </Panel>
 
       <p className="text-[11.5px] text-[var(--tinta-tenue)] mt-3 px-1">
-        Cada fila salió de un agente que apretó Registrar. Una propiedad no puede tener dos reservas vigentes
-        al mismo tiempo.{" "}
+        Cada fila salió de un agente que apretó Registrar y ya fue validada por gerencia. Una propiedad no
+        puede tener dos reservas vigentes al mismo tiempo.{" "}
+        <Boton chico tono="fantasma" onClick={() => nav.irGerencia("documentos")}>
+          Ver documentos por validar
+        </Boton>{" "}
         <Boton chico tono="fantasma" onClick={() => nav.irGerencia("vencimientos")}>
           Ir al tablero de vencimientos
         </Boton>

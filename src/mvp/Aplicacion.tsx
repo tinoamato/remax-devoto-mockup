@@ -8,6 +8,7 @@ import { Proveedor, useApp, useDerivados, type Aviso } from "./tienda";
 import Generador from "./asesor/Generador";
 import MisRegistros from "./asesor/MisRegistros";
 import Vencimientos from "./gerencia/Vencimientos";
+import Documentos from "./gerencia/Documentos";
 import Reservas from "./gerencia/Reservas";
 import Facturacion from "./gerencia/Facturacion";
 import Automatizaciones from "./gerencia/Automatizaciones";
@@ -17,6 +18,7 @@ import Expediente from "./gerencia/Expediente";
 
 const NAV_GERENCIA: { id: VistaGerencia; l: string; corto: string; i: NombreIcono }[] = [
   { id: "vencimientos", l: "Vencimientos", corto: "Vencim.", i: "reloj" },
+  { id: "documentos", l: "Documentos generados", corto: "Documentos", i: "documento" },
   { id: "reservas", l: "Reservas", corto: "Reservas", i: "expediente" },
   { id: "facturacion", l: "Facturación", corto: "Facturac.", i: "tendencia" },
   { id: "automatizaciones", l: "Automatizaciones", corto: "Avisos", i: "rayo" },
@@ -31,6 +33,7 @@ const NAV_ASESOR: { id: VistaAsesor; l: string; corto: string; i: NombreIcono }[
 
 const TITULOS: Record<string, string> = {
   vencimientos: "Vencimientos",
+  documentos: "Documentos generados",
   reservas: "Reservas registradas",
   facturacion: "Facturación y proyección por agente",
   automatizaciones: "Avisos automáticos por correo",
@@ -181,7 +184,8 @@ function BarraSuperior() {
 
 function Lateral() {
   const nav = useNav();
-  const { vencidos, hoy, seApagan, contactoVencido, porRevisar } = useDerivados();
+  const { vencidos, hoy, seApagan, contactoVencido, registrosNuevos, adendasNuevas, bajasPedidas } =
+    useDerivados();
   const { e } = useApp();
   const items = nav.modo === "gerencia" ? NAV_GERENCIA : NAV_ASESOR;
   const activa = nav.modo === "gerencia" ? nav.vistaGerencia : nav.vistaAsesor;
@@ -190,18 +194,22 @@ function Lateral() {
     (r) => r.asesorId === e.yo && r.estado === "vigente",
   ).length;
 
+  const pendientesValidar = registrosNuevos.length + adendasNuevas.length;
+
   const insignia = (id: string) =>
     id === "vencimientos"
       ? vencidos.length + hoy.length
-      : id === "reservas"
-        ? porRevisar
-        : id === "facturacion"
-          ? seApagan.length
-          : id === "contacto"
-            ? contactoVencido.length
-            : id === "registros"
-              ? mios
-              : 0;
+      : id === "documentos"
+        ? pendientesValidar
+        : id === "reservas"
+          ? bajasPedidas.length
+          : id === "facturacion"
+            ? seApagan.length
+            : id === "contacto"
+              ? contactoVencido.length
+              : id === "registros"
+                ? mios
+                : 0;
 
   return (
     <nav className="hidden md:flex flex-col w-[196px] shrink-0 border-r border-[var(--linea)] bg-[var(--papel-alto)]">
@@ -211,7 +219,9 @@ function Lateral() {
           const n = insignia(it.id);
           const alerta =
             nav.modo === "gerencia" &&
-            ((it.id === "vencimientos" && vencidos.length > 0) || (it.id === "reservas" && porRevisar > 0));
+            ((it.id === "vencimientos" && vencidos.length > 0) ||
+              (it.id === "documentos" && pendientesValidar > 0) ||
+              (it.id === "reservas" && bajasPedidas.length > 0));
           return (
             <li key={it.id}>
               <button
@@ -264,7 +274,7 @@ function Lateral() {
 
 function NavInferior() {
   const nav = useNav();
-  const { vencidos } = useDerivados();
+  const { vencidos, registrosNuevos, adendasNuevas } = useDerivados();
   const items = nav.modo === "gerencia" ? NAV_GERENCIA : NAV_ASESOR;
   const activa = nav.modo === "gerencia" ? nav.vistaGerencia : nav.vistaAsesor;
 
@@ -275,7 +285,12 @@ function NavInferior() {
     >
       {items.map((it) => {
         const on = activa === it.id;
-        const n = it.id === "vencimientos" ? vencidos.length : 0;
+        const n =
+          it.id === "vencimientos"
+            ? vencidos.length
+            : it.id === "documentos"
+              ? registrosNuevos.length + adendasNuevas.length
+              : 0;
         return (
           <button
             key={it.id}
@@ -337,6 +352,8 @@ function Cuerpo() {
             {nav.modo === "gerencia" ? (
               nav.vistaGerencia === "vencimientos" ? (
                 <Vencimientos />
+              ) : nav.vistaGerencia === "documentos" ? (
+                <Documentos />
               ) : nav.vistaGerencia === "reservas" ? (
                 <Reservas />
               ) : nav.vistaGerencia === "facturacion" ? (
