@@ -101,7 +101,7 @@ export type Accion =
   | { t: "umbrales.set"; cambio: Partial<Umbrales> }
   | { t: "regla.set"; id: Regla["id"]; cambio: Partial<Regla> }
   | { t: "regla.probar"; id: Regla["id"] }
-  | { t: "contacto.registrar"; asesorId: string; nota: string }
+  | { t: "contacto.registrar"; asesorId: string; canal: string; nota: string }
   | { t: "contacto.tope"; asesorId: string; dias: number }
   | { t: "aviso.cerrar"; id: number };
 
@@ -595,7 +595,7 @@ function reducir(e: Estado, a: Accion): Estado {
         ...e,
         asesores: e.asesores.map((x) => (x.id === a.asesorId ? { ...x, ultimoContacto: e.ahora } : x)),
         contactos: [
-          { id: nid("ct"), asesorId: a.asesorId, ts: e.ahora, canal: "Manual", nota: a.nota },
+          { id: nid("ct"), asesorId: a.asesorId, ts: e.ahora, canal: a.canal, nota: a.nota },
           ...e.contactos,
         ],
         avisos: avisar(e, `Contacto con ${as?.nombre} registrado. El contador vuelve a cero.`, "ok"),

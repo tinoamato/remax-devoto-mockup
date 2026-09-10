@@ -1,6 +1,19 @@
 import { useMemo, useState } from "react";
+import { CANALES_CONTACTO } from "../datos";
 import { useApp, useDerivados, type ResumenContacto } from "../tienda";
-import { Boton, CabezaPanel, Etiqueta, Inicial, Panel, Selector, Vacio, Barra } from "../../components/ui";
+import {
+  Barra,
+  Boton,
+  BotonIcono,
+  CabezaPanel,
+  Cajon,
+  Etiqueta,
+  Inicial,
+  Modal,
+  Panel,
+  Selector,
+  Vacio,
+} from "../../components/ui";
 import { Icono } from "../../lib/icons";
 import { cn, fechaCorta, fechaHora, hace } from "../../lib/format";
 
@@ -52,9 +65,207 @@ const ESTADO_COLOR = {
   ok: "var(--verde)",
 } as const;
 
-function FilaAgente({ r, ahora }: { r: ResumenContacto; ahora: number }) {
+/* ── Registrar contacto ─────────────────────────────────────── */
+
+function ModalRegistrarContacto({ r, cerrar }: { r: ResumenContacto; cerrar: () => void }) {
   const { d } = useApp();
-  const [abierto, setAbierto] = useState(false);
+  const [canal, setCanal] = useState(r.historial[0]?.canal ?? CANALES_CONTACTO[0]);
+  const [nota, setNota] = useState("");
+
+  const guardar = () => {
+    d({ t: "contacto.registrar", asesorId: r.asesor.id, canal, nota: nota.trim() });
+    cerrar();
+  };
+
+  return (
+    <Modal
+      titulo="Registrar contacto"
+      sub={r.asesor.nombre}
+      cerrar={cerrar}
+      ancho={420}
+      pie={
+        <>
+          <Boton onClick={cerrar}>Cancelar</Boton>
+          <Boton tono="primario" ico="telefono" onClick={guardar}>
+            Registrar
+          </Boton>
+        </>
+      }
+    >
+      <fieldset>
+        <legend className="rotulo mb-1.5">Tipo de contacto</legend>
+        <div className="flex flex-wrap gap-1.5">
+          {CANALES_CONTACTO.map((c) => (
+            <button
+              key={c}
+              type="button"
+              aria-pressed={canal === c}
+              onClick={() => setCanal(c)}
+              className={cn(
+                "h-8 px-2.5 rounded-[var(--r-sm)] border text-[12.5px] font-medium transition-colors",
+                canal === c
+                  ? "bg-[var(--sello-tenue)] border-[var(--sello)] text-[var(--sello)]"
+                  : "bg-[var(--papel-alto)] border-[var(--linea-fuerte)] text-[var(--tinta-media)] hover:bg-[var(--papel-hundido)]",
+              )}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+      </fieldset>
+
+      <label className="block mt-3.5">
+        <span className="rotulo block mb-1">Comentario (opcional)</span>
+        <textarea
+          value={nota}
+          onChange={(ev) => setNota(ev.target.value)}
+          rows={3}
+          placeholder="Por ejemplo: comprometió cerrar dos operaciones este mes."
+          className="w-full bg-[var(--papel-hundido)] border border-[var(--linea-fuerte)] rounded-[var(--r-sm)] px-2.5 py-2 text-[13px] outline-none focus:bg-[var(--papel-alto)] focus:border-[var(--sello)] resize-y"
+        />
+      </label>
+
+      <p className="text-[11.5px] text-[var(--tinta-tenue)] mt-3">
+        Queda con la fecha y hora de hoy. El contador de días sin contacto vuelve a cero.
+      </p>
+    </Modal>
+  );
+}
+
+/* ── Historial completo, en un cajón lateral ────────────────── */
+
+function CajonHistorial({
+  r,
+  ahora,
+  cerrar,
+  alRegistrar,
+}: {
+  r: ResumenContacto;
+  ahora: number;
+  cerrar: () => void;
+  alRegistrar: () => void;
+}) {
+  const { asesor: a } = r;
+  const consumo = Math.min(100, Math.max(0, (r.diasSinContacto / a.topeContactoDias) * 100));
+
+  return (
+    <Cajon cerrar={cerrar} ancho={480}>
+      <header className="shrink-0 px-4 py-3.5 border-b border-[var(--linea)] bg-[var(--papel-alto)] flex items-center gap-3">
+        <Inicial txt={a.iniciales} s={36} />
+        <div className="min-w-0 flex-1">
+          <h2 className="text-[15px] font-semibold leading-tight truncate">{a.nombre}</h2>
+          <p className="text-[12px] text-[var(--tinta-suave)]">
+            Último contacto {fechaCorta(a.ultimoContacto)} · {hace(a.ultimoContacto, ahora)}
+          </p>
+        </div>
+        <Etiqueta t={ESTADO_ETIQ[r.estado]}>{ESTADO_ROTULO[r.estado]}</Etiqueta>
+        <BotonIcono ico="cruz" rotulo="Cerrar" onClick={cerrar} />
+      </header>
+
+      <div className="shrink-0 px-4 py-3 border-b border-[var(--linea)] bg-[var(--papel-hundido)]/40">
+        <div className="flex items-center justify-between text-[11px] text-[var(--tinta-tenue)] mb-1">
+          <span className="num">
+            {Math.floor(r.diasSinContacto)} de {a.topeContactoDias} días sin contacto
+          </span>
+          <span className="num" style={{ color: r.diasParaLimite < 0 ? "var(--lacre)" : "var(--tinta-tenue)" }}>
+            {r.diasParaLimite >= 0
+              ? `${Math.ceil(r.diasParaLimite)} días para el tope`
+              : `${Math.abs(Math.floor(r.diasParaLimite))} días pasado el tope`}
+          </span>
+        </div>
+        <Barra pct={consumo} color={ESTADO_COLOR[r.estado]} />
+
+        <div className="grid grid-cols-2 gap-3 mt-3">
+          <div>
+            <p className="rotulo">Pasó el tope · 12 m</p>
+            <p
+              className="num text-[18px] font-semibold leading-none mt-1"
+              style={{ color: r.pasados12m > 0 ? "var(--lacre)" : "var(--verde)" }}
+            >
+              {r.pasados12m} {r.pasados12m === 1 ? "vez" : "veces"}
+            </p>
+          </div>
+          <div>
+            <p className="rotulo">Próximo aviso automático</p>
+            {r.proximoDisparo === null ? (
+              <p className="text-[12px] text-[var(--tinta-tenue)] mt-1">Automatización apagada</p>
+            ) : (
+              <p
+                className="text-[12px] font-medium mt-1"
+                style={{ color: r.proximoDisparo.ts < ahora ? "var(--lacre)" : "var(--tinta-media)" }}
+              >
+                {r.proximoDisparo.tipo === "previo" ? "Aviso previo" : "Aviso de vencido"}
+                {" · "}
+                {r.proximoDisparo.ts < ahora
+                  ? `hace ${hace(r.proximoDisparo.ts, ahora).replace("hace ", "")}`
+                  : `en ${Math.ceil((r.proximoDisparo.ts - ahora) / dia)} d`}
+              </p>
+            )}
+          </div>
+        </div>
+
+        <Boton chico tono="primario" ico="telefono" className="w-full mt-3" onClick={alRegistrar}>
+          Registrar contacto
+        </Boton>
+      </div>
+
+      <div className="flex-1 min-h-0 overflow-y-auto scroll">
+        <p className="rotulo px-4 py-2 bg-[var(--papel-hundido)]/60 border-b border-[var(--linea-suave)] sticky top-0">
+          Historial · {r.historial.length}
+        </p>
+        {r.historial.length === 0 ? (
+          <Vacio ico="historial" titulo="Sin contactos registrados" />
+        ) : (
+          <ol className="p-4 pl-6 relative">
+            <span
+              className="absolute left-[27px] top-5 bottom-5 w-px bg-[var(--linea)]"
+              aria-hidden="true"
+            />
+            {r.historial.map((c, i) => {
+              const anterior = r.historial[i + 1];
+              const gapDias = anterior ? Math.round((c.ts - anterior.ts) / dia) : null;
+              const pasoTope = gapDias !== null && gapDias > a.topeContactoDias;
+              return (
+                <li key={c.id} className="relative pb-4 last:pb-0">
+                  <span
+                    className="absolute -left-[10px] top-[6px] size-[7px] rounded-[2px] border-2 border-[var(--papel)]"
+                    style={{ background: pasoTope ? "var(--lacre)" : "var(--sello)" }}
+                    aria-hidden="true"
+                  />
+                  <p className="text-[12.5px]">
+                    <span className="num font-medium">{fechaHora(c.ts)}</span>
+                    <span className="text-[var(--tinta-suave)]"> · {c.canal}</span>
+                  </p>
+                  {gapDias !== null && (
+                    <p className="text-[11px] mt-0.5" style={{ color: pasoTope ? "var(--lacre)" : "var(--tinta-tenue)" }}>
+                      {gapDias} días desde el contacto anterior{pasoTope && " · pasó el tope"}
+                    </p>
+                  )}
+                  {c.nota && <p className="text-[12px] text-[var(--tinta-media)] mt-1 leading-snug">{c.nota}</p>}
+                </li>
+              );
+            })}
+          </ol>
+        )}
+      </div>
+    </Cajon>
+  );
+}
+
+/* ── Fila de la lista ───────────────────────────────────────── */
+
+function FilaAgente({
+  r,
+  ahora,
+  onHistorial,
+  onRegistrar,
+}: {
+  r: ResumenContacto;
+  ahora: number;
+  onHistorial: () => void;
+  onRegistrar: () => void;
+}) {
+  const { d } = useApp();
   const { asesor: a } = r;
   const consumo = Math.min(100, Math.max(0, (r.diasSinContacto / a.topeContactoDias) * 100));
   const ultimoCanal = r.historial[0]?.canal;
@@ -137,67 +348,19 @@ function FilaAgente({ r, ahora }: { r: ResumenContacto; ahora: number }) {
         </div>
 
         <div className="flex items-center gap-2 shrink-0 lg:ml-auto">
-          <Boton
-            chico
-            tono="fantasma"
-            ico={abierto ? "chevArriba" : "chevAbajo"}
-            onClick={() => setAbierto((v) => !v)}
-          >
+          <Boton chico tono="fantasma" ico="historial" onClick={onHistorial}>
             Historial · {r.historial.length}
           </Boton>
-          <Boton
-            chico
-            tono="primario"
-            ico="telefono"
-            onClick={() => d({ t: "contacto.registrar", asesorId: a.id, nota: "" })}
-          >
+          <Boton chico tono="primario" ico="telefono" onClick={onRegistrar}>
             Registrar contacto
           </Boton>
         </div>
       </div>
-
-      {abierto && (
-        <div className="px-4 pb-3.5 pl-[64px]">
-          {r.historial.length === 0 ? (
-            <p className="text-[12px] text-[var(--tinta-tenue)] py-2">Sin contactos registrados todavía.</p>
-          ) : (
-            <ol className="relative pl-4 border-l border-[var(--linea)] space-y-2.5 py-1 max-h-[280px] overflow-y-auto scroll">
-              {r.historial.map((c) => {
-                const gapDias =
-                  r.historial.indexOf(c) < r.historial.length - 1
-                    ? Math.round((c.ts - r.historial[r.historial.indexOf(c) + 1].ts) / dia)
-                    : null;
-                return (
-                  <li key={c.id} className="relative">
-                    <span
-                      className="absolute -left-[21px] top-[3px] size-[7px] rounded-full border-2 border-[var(--papel-alto)]"
-                      style={{ background: "var(--sello)" }}
-                      aria-hidden="true"
-                    />
-                    <p className="text-[12px]">
-                      <span className="font-medium">{fechaHora(c.ts)}</span>
-                      <span className="text-[var(--tinta-suave)]"> · {c.canal}</span>
-                    </p>
-                    {gapDias !== null && (
-                      <p
-                        className="text-[10.5px] mt-0.5"
-                        style={{ color: gapDias > a.topeContactoDias ? "var(--lacre)" : "var(--tinta-tenue)" }}
-                      >
-                        {gapDias} días desde el contacto anterior
-                        {gapDias > a.topeContactoDias && " · pasó el tope"}
-                      </p>
-                    )}
-                    {c.nota && <p className="text-[11.5px] text-[var(--tinta-media)] mt-0.5">{c.nota}</p>}
-                  </li>
-                );
-              })}
-            </ol>
-          )}
-        </div>
-      )}
     </li>
   );
 }
+
+/* ── Vista ──────────────────────────────────────────────────── */
 
 type Orden = "diasSinContacto" | "diasParaLimite";
 type Foco = "" | "vencido" | "porVencer" | "ok";
@@ -207,6 +370,8 @@ export default function Contacto() {
   const { resumenContacto } = useDerivados();
   const [foco, setFoco] = useState<Foco>("");
   const [orden, setOrden] = useState<Orden>("diasSinContacto");
+  const [historialId, setHistorialId] = useState<string | null>(null);
+  const [registrarId, setRegistrarId] = useState<string | null>(null);
 
   const pasados = resumenContacto.filter((r) => r.estado === "vencido");
   const porVencer = resumenContacto.filter((r) => r.estado === "porVencer");
@@ -218,6 +383,9 @@ export default function Contacto() {
       orden === "diasSinContacto" ? y.diasSinContacto - x.diasSinContacto : x.diasParaLimite - y.diasParaLimite,
     );
   }, [resumenContacto, foco, orden]);
+
+  const rHistorial = historialId ? resumenContacto.find((r) => r.asesor.id === historialId) ?? null : null;
+  const rRegistrar = registrarId ? resumenContacto.find((r) => r.asesor.id === registrarId) ?? null : null;
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
@@ -287,12 +455,28 @@ export default function Contacto() {
           ) : (
             <ul>
               {filas.map((r) => (
-                <FilaAgente key={r.asesor.id} r={r} ahora={e.ahora} />
+                <FilaAgente
+                  key={r.asesor.id}
+                  r={r}
+                  ahora={e.ahora}
+                  onHistorial={() => setHistorialId(r.asesor.id)}
+                  onRegistrar={() => setRegistrarId(r.asesor.id)}
+                />
               ))}
             </ul>
           )}
         </Panel>
       </div>
+
+      {rHistorial && (
+        <CajonHistorial
+          r={rHistorial}
+          ahora={e.ahora}
+          cerrar={() => setHistorialId(null)}
+          alRegistrar={() => setRegistrarId(rHistorial.asesor.id)}
+        />
+      )}
+      {rRegistrar && <ModalRegistrarContacto r={rRegistrar} cerrar={() => setRegistrarId(null)} />}
     </div>
   );
 }

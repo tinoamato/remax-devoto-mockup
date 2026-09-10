@@ -121,7 +121,7 @@ export interface ContactoRegistro {
   nota: string;
 }
 
-const CANALES_CONTACTO = ["Llamada", "Reunión", "WhatsApp", "Visita a la oficina", "Videollamada"];
+export const CANALES_CONTACTO = ["Llamada", "Reunión", "WhatsApp", "Visita a la oficina", "Videollamada"];
 
 /**
  * Camina hacia atrás desde el último contacto real, con intervalos que a
