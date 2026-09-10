@@ -59,6 +59,7 @@ function Cifra({
 
 const ESTADO_ETIQ = { vencido: "vencida", porVencer: "hoy", ok: "ok" } as const;
 const ESTADO_ROTULO = { vencido: "Pasado de tope", porVencer: "Por vencer", ok: "Al día" } as const;
+const ESTADO_GRUPO = { vencido: "Pasados de tope", porVencer: "Por vencer", ok: "Al día" } as const;
 const ESTADO_COLOR = {
   vencido: "var(--lacre)",
   porVencer: "var(--ambar)",
@@ -273,17 +274,19 @@ function FilaAgente({
   return (
     <li className="border-b border-[var(--linea-suave)] last:border-b-0">
       <div className="flex flex-col lg:flex-row lg:items-center gap-3 lg:gap-4 px-4 py-3.5">
-        <div className="flex items-start gap-3 min-w-0 lg:w-[280px] lg:shrink-0">
+        <div className="flex items-start gap-3 min-w-0 lg:w-[300px] lg:shrink-0">
           <Inicial txt={a.iniciales} s={36} />
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-[14px] font-semibold truncate">{a.nombre}</h3>
-              <Etiqueta t={ESTADO_ETIQ[r.estado]}>{ESTADO_ROTULO[r.estado]}</Etiqueta>
-            </div>
+            <h3 className="text-[14px] font-semibold truncate">{a.nombre}</h3>
             <p className="text-[12px] text-[var(--tinta-suave)] mt-0.5">
               Último contacto {fechaCorta(a.ultimoContacto)} · {hace(a.ultimoContacto, ahora)}
               {ultimoCanal && ` · ${ultimoCanal}`}
             </p>
+            {r.pasados12m > 0 && (
+              <p className="text-[11px] mt-0.5" style={{ color: "var(--tinta-tenue)" }}>
+                Pasó el tope {r.pasados12m === 1 ? "una vez" : `${r.pasados12m} veces`} en los últimos 12 meses
+              </p>
+            )}
           </div>
         </div>
 
@@ -311,40 +314,6 @@ function FilaAgente({
             />
             días sin contacto
           </label>
-        </div>
-
-        <div className="flex items-center gap-4 lg:gap-5 shrink-0">
-          <div className="text-right w-[92px]">
-            <p className="rotulo">Pasó el tope · 12 m</p>
-            <p
-              className="num text-[20px] font-semibold leading-none mt-1"
-              style={{ color: r.pasados12m > 0 ? "var(--lacre)" : "var(--verde)" }}
-            >
-              {r.pasados12m}
-            </p>
-            <p className="text-[10.5px] text-[var(--tinta-tenue)] mt-0.5">
-              {r.pasados12m === 0 ? "nunca" : r.pasados12m === 1 ? "una vez" : "veces"}
-            </p>
-          </div>
-
-          <div className="text-right w-[168px]">
-            <p className="rotulo">Próximo aviso automático</p>
-            {r.proximoDisparo === null ? (
-              <p className="text-[12px] text-[var(--tinta-tenue)] mt-1">Automatización apagada</p>
-            ) : (
-              <p
-                className="text-[12px] font-medium mt-1"
-                style={{ color: r.proximoDisparo.ts < ahora ? "var(--lacre)" : "var(--tinta-media)" }}
-              >
-                {r.proximoDisparo.tipo === "previo" ? "Aviso previo" : "Aviso de vencido"}
-                <span className="block text-[11px] font-normal text-[var(--tinta-tenue)]">
-                  {r.proximoDisparo.ts < ahora
-                    ? `ya debería haber salido · ${hace(r.proximoDisparo.ts, ahora)}`
-                    : `${fechaCorta(r.proximoDisparo.ts)} · en ${Math.ceil((r.proximoDisparo.ts - ahora) / dia)} d`}
-                </span>
-              </p>
-            )}
-          </div>
         </div>
 
         <div className="flex items-center gap-2 shrink-0 lg:ml-auto">
@@ -383,6 +352,10 @@ export default function Contacto() {
       orden === "diasSinContacto" ? y.diasSinContacto - x.diasSinContacto : x.diasParaLimite - y.diasParaLimite,
     );
   }, [resumenContacto, foco, orden]);
+
+  const grupos = (["vencido", "porVencer", "ok"] as const)
+    .map((estado) => ({ estado, lista: filas.filter((r) => r.estado === estado) }))
+    .filter((g) => g.lista.length > 0);
 
   const rHistorial = historialId ? resumenContacto.find((r) => r.asesor.id === historialId) ?? null : null;
   const rRegistrar = registrarId ? resumenContacto.find((r) => r.asesor.id === registrarId) ?? null : null;
@@ -453,17 +426,27 @@ export default function Contacto() {
           {filas.length === 0 ? (
             <Vacio ico="tilde" titulo="Nadie en este filtro" detalle="Probá con otro estado." />
           ) : (
-            <ul>
-              {filas.map((r) => (
-                <FilaAgente
-                  key={r.asesor.id}
-                  r={r}
-                  ahora={e.ahora}
-                  onHistorial={() => setHistorialId(r.asesor.id)}
-                  onRegistrar={() => setRegistrarId(r.asesor.id)}
-                />
-              ))}
-            </ul>
+            grupos.map((g) => (
+              <div key={g.estado}>
+                <p
+                  className="rotulo px-4 py-1.5 bg-[var(--papel-hundido)]/60 border-y border-[var(--linea-suave)]"
+                  style={{ color: ESTADO_COLOR[g.estado] }}
+                >
+                  {ESTADO_GRUPO[g.estado]} · {g.lista.length}
+                </p>
+                <ul>
+                  {g.lista.map((r) => (
+                    <FilaAgente
+                      key={r.asesor.id}
+                      r={r}
+                      ahora={e.ahora}
+                      onHistorial={() => setHistorialId(r.asesor.id)}
+                      onRegistrar={() => setRegistrarId(r.asesor.id)}
+                    />
+                  ))}
+                </ul>
+              </div>
+            ))
           )}
         </Panel>
       </div>
