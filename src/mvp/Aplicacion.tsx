@@ -11,6 +11,7 @@ import Reservas from "./gerencia/Reservas";
 import Facturacion from "./gerencia/Facturacion";
 import Automatizaciones from "./gerencia/Automatizaciones";
 import Contacto from "./gerencia/Contacto";
+import Equipo from "./gerencia/Equipo";
 import Expediente from "./gerencia/Expediente";
 
 const NAV_GERENCIA: { id: VistaGerencia; l: string; corto: string; i: NombreIcono }[] = [
@@ -19,6 +20,7 @@ const NAV_GERENCIA: { id: VistaGerencia; l: string; corto: string; i: NombreIcon
   { id: "facturacion", l: "Facturación", corto: "Facturac.", i: "tendencia" },
   { id: "automatizaciones", l: "Automatizaciones", corto: "Avisos", i: "rayo" },
   { id: "contacto", l: "Contacto con agentes", corto: "Contacto", i: "pulso" },
+  { id: "equipo", l: "Equipo", corto: "Equipo", i: "equipo" },
 ];
 
 const NAV_ASESOR: { id: VistaAsesor; l: string; corto: string; i: NombreIcono }[] = [
@@ -32,6 +34,7 @@ const TITULOS: Record<string, string> = {
   facturacion: "Facturación y proyección por agente",
   automatizaciones: "Avisos automáticos por correo",
   contacto: "Último contacto con cada agente",
+  equipo: "Equipo y configuración de la oficina",
   generar: "Generar un documento",
   registros: "Mis documentos registrados",
 };
@@ -327,8 +330,10 @@ function Cuerpo() {
                 <Facturacion />
               ) : nav.vistaGerencia === "automatizaciones" ? (
                 <Automatizaciones />
-              ) : (
+              ) : nav.vistaGerencia === "contacto" ? (
                 <Contacto />
+              ) : (
+                <Equipo />
               )
             ) : nav.vistaAsesor === "generar" ? (
               <Generador />

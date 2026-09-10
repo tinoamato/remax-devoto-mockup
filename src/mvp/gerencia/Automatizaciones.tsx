@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { EMAIL_GERENCIA, type Regla } from "../datos";
+import { type Regla } from "../datos";
 import { useApp } from "../tienda";
-import { Boton, CabezaPanel, Etiqueta, Panel, Vacio } from "../../components/ui";
+import { Boton, CabezaPanel, Etiqueta, Panel } from "../../components/ui";
 import { Icono } from "../../lib/icons";
-import { cn, fechaHora } from "../../lib/format";
+import { cn } from "../../lib/format";
 
 /* ── Interruptor ────────────────────────────────────────────── */
 
@@ -145,12 +145,12 @@ function TarjetaRegla({ r }: { r: Regla }) {
                 <p className="text-[11.5px] text-[var(--tinta-tenue)]">
                   Para:{" "}
                   <span className="text-[var(--tinta-media)]">
-                    {r.aAsesor ? asesor.email : r.aGerencia && !r.gerenciaOculta ? EMAIL_GERENCIA : "—"}
+                    {r.aAsesor ? asesor.email : r.aGerencia && !r.gerenciaOculta ? e.emailGerencia : "—"}
                   </span>
                 </p>
                 {r.aGerencia && r.gerenciaOculta && (
                   <p className="text-[11.5px] text-[var(--tinta-tenue)]">
-                    CCO: <span className="text-[var(--tinta-media)]">{EMAIL_GERENCIA}</span>
+                    CCO: <span className="text-[var(--tinta-media)]">{e.emailGerencia}</span>
                   </p>
                 )}
                 <p className="text-[12.5px] font-semibold mt-1">{ejemplo[r.id].asunto}</p>
@@ -173,7 +173,7 @@ export default function Automatizaciones() {
 
   return (
     <div className="h-full overflow-y-auto scroll p-4">
-      <div className="grid gap-4 xl:grid-cols-2 items-start max-w-[1400px] mx-auto">
+      <div className="max-w-[700px] mx-auto">
         {/* Reglas */}
         <Panel>
           <CabezaPanel titulo="Qué correos salen solos" cuenta={e.reglas.filter((r) => r.activa).length} />
@@ -182,32 +182,6 @@ export default function Automatizaciones() {
               <TarjetaRegla key={r.id} r={r} />
             ))}
           </ul>
-        </Panel>
-
-        {/* Bandeja */}
-        <Panel>
-          <CabezaPanel titulo="Correos ya enviados" cuenta={e.correos.length} />
-          {e.correos.length === 0 ? (
-            <Vacio ico="correo" titulo="Todavía no salió ningún correo" />
-          ) : (
-            <ul className="divide-y divide-[var(--linea-suave)]">
-              {e.correos.slice(0, 8).map((c) => (
-                <li key={c.id} className="px-3.5 py-2.5">
-                  <div className="flex items-baseline gap-2">
-                    <p className="text-[12.5px] font-medium truncate flex-1">{c.asunto}</p>
-                    <span className="num text-[10.5px] text-[var(--tinta-tenue)] shrink-0">
-                      {fechaHora(c.ts)}
-                    </span>
-                  </div>
-                  <p className="text-[11.5px] text-[var(--tinta-tenue)] mt-0.5 truncate">
-                    Para: {c.para.join(", ") || "—"}
-                    {c.copiaOculta.length > 0 && ` · CCO: ${c.copiaOculta.join(", ")}`}
-                  </p>
-                  <p className="text-[12px] text-[var(--tinta-media)] mt-1 line-clamp-2">{c.cuerpo}</p>
-                </li>
-              ))}
-            </ul>
-          )}
         </Panel>
       </div>
     </div>

@@ -47,6 +47,8 @@ export interface Asesor {
   /** Días máximos sin contacto de gerencia antes de que salte el aviso. */
   topeContactoDias: number;
   ultimoContacto: number;
+  /** Falso cuando gerencia le dio de baja: deja de recibir correos y de sumar al equipo activo. */
+  activo: boolean;
 }
 
 const ini = (n: string) =>
@@ -109,6 +111,7 @@ export const asesores: Asesor[] = crudos.map(([nombre, base, semilla, ant, seq, 
   facturacion: serie(base, semilla, seq),
   topeContactoDias: tope,
   ultimoContacto: AHORA - Math.round(tope * (0.35 + ((i * 17) % 13) / 10)) * dia,
+  activo: true,
 }));
 
 /* ── Historial de contacto con gerencia ─────────────────────── */

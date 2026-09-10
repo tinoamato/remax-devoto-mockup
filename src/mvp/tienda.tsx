@@ -54,6 +54,8 @@ export interface Estado {
   umbrales: Umbrales;
   avisos: Aviso[];
   yo: string;
+  /** Casilla que recibe (o va en copia oculta) los correos automáticos de gerencia. */
+  emailGerencia: string;
 }
 
 const inicial: Estado = {
@@ -67,6 +69,7 @@ const inicial: Estado = {
   umbrales: umbralesIniciales,
   avisos: [],
   yo: "a1",
+  emailGerencia: EMAIL_GERENCIA,
 };
 
 /* ── Acciones ───────────────────────────────────────────────── */
@@ -103,6 +106,11 @@ export type Accion =
   | { t: "regla.probar"; id: Regla["id"] }
   | { t: "contacto.registrar"; asesorId: string; canal: string; nota: string }
   | { t: "contacto.tope"; asesorId: string; dias: number }
+  | { t: "config.set"; cambio: Partial<Pick<Estado, "emailGerencia">> }
+  | { t: "agente.crear"; nombre: string; email: string; topeContactoDias: number }
+  | { t: "agente.editar"; asesorId: string; cambio: Partial<Pick<Asesor, "nombre" | "email" | "topeContactoDias">> }
+  | { t: "agente.baja"; asesorId: string }
+  | { t: "agente.reactivar"; asesorId: string }
   | { t: "aviso.cerrar"; id: number };
 
 let seqAviso = 1;
@@ -505,7 +513,7 @@ function reducir(e: Estado, a: Accion): Estado {
             `Falta la adenda · ${reg.id} · ${reg.direccion}`,
             `Hola ${asesor.nombre.split(" ")[0]}, gerencia movió el vencimiento de «${plazo?.rotulo}» de ${reg.direccion} al ${plazo ? new Date(plazo.vence).toLocaleDateString("es-AR") : ""}. Generá la adenda en el sistema para que quede registrada.`,
             [asesor.email],
-            [EMAIL_GERENCIA],
+            [e.emailGerencia],
             reg.id,
           ),
           ...e.correos,
@@ -558,8 +566,8 @@ function reducir(e: Estado, a: Accion): Estado {
       const plazo = reg?.plazos.find((p) => !p.cumplido);
       const destinos: string[] = [];
       if (r.aAsesor) destinos.push(asesor.email);
-      if (r.aGerencia && !r.gerenciaOculta) destinos.push(EMAIL_GERENCIA);
-      const ocultos = r.aGerencia && r.gerenciaOculta ? [EMAIL_GERENCIA] : [];
+      if (r.aGerencia && !r.gerenciaOculta) destinos.push(e.emailGerencia);
+      const ocultos = r.aGerencia && r.gerenciaOculta ? [e.emailGerencia] : [];
 
       const guiones: Record<Regla["id"], [string, string]> = {
         previo: [
@@ -609,6 +617,60 @@ function reducir(e: Estado, a: Accion): Estado {
           x.id === a.asesorId ? { ...x, topeContactoDias: Math.max(1, a.dias) } : x,
         ),
       };
+
+    case "config.set":
+      return { ...e, ...a.cambio, avisos: avisar(e, "Configuración de la oficina actualizada.", "ok") };
+
+    case "agente.crear": {
+      const asesor: Asesor = {
+        id: nid("a"),
+        nombre: a.nombre,
+        iniciales: a.nombre
+          .split(" ")
+          .map((p) => p[0])
+          .join("")
+          .slice(0, 2)
+          .toUpperCase(),
+        email: a.email,
+        antiguedadMeses: 0,
+        facturacion: Array(12).fill(0),
+        topeContactoDias: Math.max(1, a.topeContactoDias),
+        ultimoContacto: e.ahora,
+        activo: true,
+      };
+      return {
+        ...e,
+        asesores: [...e.asesores, asesor],
+        avisos: avisar(e, `${a.nombre} se sumó al equipo.`, "ok"),
+      };
+    }
+
+    case "agente.editar": {
+      const as = e.asesores.find((x) => x.id === a.asesorId);
+      return {
+        ...e,
+        asesores: e.asesores.map((x) => (x.id === a.asesorId ? { ...x, ...a.cambio } : x)),
+        avisos: avisar(e, `Datos de ${as?.nombre} actualizados.`, "ok"),
+      };
+    }
+
+    case "agente.baja": {
+      const as = e.asesores.find((x) => x.id === a.asesorId);
+      return {
+        ...e,
+        asesores: e.asesores.map((x) => (x.id === a.asesorId ? { ...x, activo: false } : x)),
+        avisos: avisar(e, `${as?.nombre} quedó dado de baja. Deja de recibir correos automáticos.`, "neutro"),
+      };
+    }
+
+    case "agente.reactivar": {
+      const as = e.asesores.find((x) => x.id === a.asesorId);
+      return {
+        ...e,
+        asesores: e.asesores.map((x) => (x.id === a.asesorId ? { ...x, activo: true } : x)),
+        avisos: avisar(e, `${as?.nombre} fue reactivado.`, "ok"),
+      };
+    }
 
     case "aviso.cerrar":
       return { ...e, avisos: e.avisos.filter((x) => x.id !== a.id) };
@@ -734,7 +796,10 @@ export function useDerivados() {
     const califica = (v: number): Semaforo => (v >= u.alto ? "alto" : v >= u.bajo ? "medio" : "bajo");
     const acumuladoEn = (f: number[], k: number) => f.slice(0, Math.max(0, 12 - k)).reduce((s, x) => s + x, 0);
 
-    const proyecciones: Proyeccion[] = e.asesores.map((a) => {
+    // Un agente de baja no vuelve a sumar en facturación proyectada ni en cadencia de contacto.
+    const activos = e.asesores.filter((a) => a.activo);
+
+    const proyecciones: Proyeccion[] = activos.map((a) => {
       const hoyAcum = acumuladoEn(a.facturacion, 0);
       const tramos = TRAMOS.map((m) => {
         const monto = acumuladoEn(a.facturacion, m);
@@ -766,10 +831,10 @@ export function useDerivados() {
       (p) => p.estadoHoy !== "bajo" && p.mesesHastaBajo !== null && p.mesesHastaBajo <= 6,
     );
 
-    const contactoVencido = e.asesores.filter(
+    const contactoVencido = activos.filter(
       (a) => (e.ahora - a.ultimoContacto) / dia >= a.topeContactoDias,
     );
-    const contactoPorVencer = e.asesores.filter((a) => {
+    const contactoPorVencer = activos.filter((a) => {
       const d = (e.ahora - a.ultimoContacto) / dia;
       const regla = e.reglas.find((r) => r.id === "contacto")!;
       return d < a.topeContactoDias && d >= a.topeContactoDias - regla.diasAntes;
@@ -777,7 +842,7 @@ export function useDerivados() {
 
     /** Vista completa de cadencia por agente, para el tab de Contacto. */
     const reglaContacto = e.reglas.find((r) => r.id === "contacto")!;
-    const resumenContacto: ResumenContacto[] = e.asesores.map((a) => {
+    const resumenContacto: ResumenContacto[] = activos.map((a) => {
       const diasSinContacto = (e.ahora - a.ultimoContacto) / dia;
       const diasParaLimite = a.topeContactoDias - diasSinContacto;
       const estado: "vencido" | "porVencer" | "ok" =

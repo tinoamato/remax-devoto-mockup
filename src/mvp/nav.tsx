@@ -2,7 +2,13 @@ import { createContext, useContext, useMemo, useState, type ReactNode } from "re
 
 export type Modo = "asesor" | "gerencia";
 export type VistaAsesor = "generar" | "registros";
-export type VistaGerencia = "vencimientos" | "reservas" | "facturacion" | "automatizaciones" | "contacto";
+export type VistaGerencia =
+  | "vencimientos"
+  | "reservas"
+  | "facturacion"
+  | "automatizaciones"
+  | "contacto"
+  | "equipo";
 
 /** Cuando se entra a hacer una adenda, el generador arranca atado a una reserva. */
 export interface Encargo {
