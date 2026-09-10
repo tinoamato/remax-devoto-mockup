@@ -1,9 +1,10 @@
+import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Icono, type NombreIcono } from "../lib/icons";
 import { cn } from "../lib/format";
 import { Inicial, Menu, ItemMenu } from "../components/ui";
 import { NavProveedor, useNav, type VistaAsesor, type VistaGerencia } from "./nav";
-import { Proveedor, useApp, useDerivados } from "./tienda";
+import { Proveedor, useApp, useDerivados, type Aviso } from "./tienda";
 import Generador from "./asesor/Generador";
 import MisRegistros from "./asesor/MisRegistros";
 import Vencimientos from "./gerencia/Vencimientos";
@@ -44,6 +45,41 @@ const TITULOS: Record<string, string> = {
 
 /* ── Avisos ─────────────────────────────────────────────────── */
 
+const DURACION_AVISO = 4000;
+
+function ItemAviso({ a, cerrar }: { a: Aviso; cerrar: () => void }) {
+  useEffect(() => {
+    const t = setTimeout(cerrar, DURACION_AVISO);
+    return () => clearTimeout(t);
+  }, [a.id, cerrar]);
+
+  return (
+    <div
+      role="status"
+      className="flex items-center gap-2.5 px-3 py-2.5 rounded-[var(--r-md)] border alza-alta a-surgir bg-[var(--papel-alto)]"
+      style={{
+        borderColor:
+          a.tono === "ok" ? "var(--verde-borde)" : a.tono === "riesgo" ? "var(--lacre-borde)" : "var(--linea-fuerte)",
+      }}
+    >
+      <Icono
+        n={a.tono === "riesgo" ? "alerta" : "tilde"}
+        s={15}
+        className={a.tono === "riesgo" ? "text-[var(--lacre)]" : "text-[var(--verde)]"}
+      />
+      <p className="text-[12.5px] flex-1">{a.texto}</p>
+      <button
+        type="button"
+        aria-label="Cerrar aviso"
+        onClick={cerrar}
+        className="size-6 grid place-items-center rounded-[var(--r-xs)] text-[var(--tinta-tenue)] hover:text-[var(--tinta)] hover:bg-[var(--papel-hundido)]"
+      >
+        <Icono n="cruz" s={12} />
+      </button>
+    </div>
+  );
+}
+
 function Avisos() {
   const { e, d } = useApp();
   if (!e.avisos.length) return null;
@@ -51,30 +87,7 @@ function Avisos() {
   return createPortal(
     <div className="fixed z-[60] bottom-4 left-1/2 -translate-x-1/2 w-[min(440px,calc(100vw-24px))] space-y-2">
       {e.avisos.map((a) => (
-        <div
-          key={a.id}
-          role="status"
-          className="flex items-center gap-2.5 px-3 py-2.5 rounded-[var(--r-md)] border alza-alta a-surgir bg-[var(--papel-alto)]"
-          style={{
-            borderColor:
-              a.tono === "ok" ? "var(--verde-borde)" : a.tono === "riesgo" ? "var(--lacre-borde)" : "var(--linea-fuerte)",
-          }}
-        >
-          <Icono
-            n={a.tono === "riesgo" ? "alerta" : "tilde"}
-            s={15}
-            className={a.tono === "riesgo" ? "text-[var(--lacre)]" : "text-[var(--verde)]"}
-          />
-          <p className="text-[12.5px] flex-1">{a.texto}</p>
-          <button
-            type="button"
-            aria-label="Cerrar aviso"
-            onClick={() => d({ t: "aviso.cerrar", id: a.id })}
-            className="size-6 grid place-items-center rounded-[var(--r-xs)] text-[var(--tinta-tenue)] hover:text-[var(--tinta)] hover:bg-[var(--papel-hundido)]"
-          >
-            <Icono n="cruz" s={12} />
-          </button>
-        </div>
+        <ItemAviso key={a.id} a={a} cerrar={() => d({ t: "aviso.cerrar", id: a.id })} />
       ))}
     </div>,
     document.body,
