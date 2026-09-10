@@ -36,13 +36,14 @@ export function Hoja({
       t.variable && resaltar ? (
         <span
           key={j}
+          data-campo={t.campo}
           className="font-medium text-[var(--tinta)]"
           style={{ background: "var(--sello-tenue)", boxShadow: "0 1px 0 var(--sello-borde)" }}
         >
           {t.t}
         </span>
       ) : (
-        <span key={j} className={t.variable ? "font-medium text-[var(--tinta)]" : undefined}>
+        <span key={j} data-campo={t.variable ? t.campo : undefined} className={t.variable ? "font-medium text-[var(--tinta)]" : undefined}>
           {t.t}
         </span>
       ),

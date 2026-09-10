@@ -522,19 +522,32 @@ function valorDe(clave: string, v: Record<string, string>, ahora: number): strin
   return CAMPOS_MONTO.has(clave) ? fmtMonto(bruto) : bruto;
 }
 
-/** Parte el texto en trozos, marcando cuáles vinieron de una respuesta. */
+/** De una clave como `vigenciaDia` o `precioLetras` saca el id del campo que se preguntó. */
+function campoDe(clave: string): string | undefined {
+  if (clave === "hoy") return undefined;
+  if (clave.endsWith("Letras")) return clave.slice(0, -6);
+  for (const sufijo of ["Dia", "Mes", "Anio"] as const) {
+    if (clave.endsWith(sufijo)) {
+      const base = clave.slice(0, -sufijo.length);
+      if (esFecha(base)) return base;
+    }
+  }
+  return clave;
+}
+
+/** Parte el texto en trozos, marcando cuáles vinieron de una respuesta y de qué campo. */
 export function resolver(
   texto: string,
   v: Record<string, string>,
   ahora: number,
-): { t: string; variable: boolean }[] {
-  const out: { t: string; variable: boolean }[] = [];
+): { t: string; variable: boolean; campo?: string }[] {
+  const out: { t: string; variable: boolean; campo?: string }[] = [];
   const re = /\{\{(\w+)\}\}/g;
   let ult = 0;
   let m: RegExpExecArray | null;
   while ((m = re.exec(texto))) {
     if (m.index > ult) out.push({ t: texto.slice(ult, m.index), variable: false });
-    out.push({ t: valorDe(m[1], v, ahora) || "………………", variable: true });
+    out.push({ t: valorDe(m[1], v, ahora) || "………………", variable: true, campo: campoDe(m[1]) });
     ult = m.index + m[0].length;
   }
   if (ult < texto.length) out.push({ t: texto.slice(ult), variable: false });

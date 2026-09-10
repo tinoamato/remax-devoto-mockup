@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   cierreDe,
   EMAIL_RECEPCION,
@@ -91,6 +91,7 @@ function PreguntaCampo({
   opciones,
   sugerencias,
   alCambiar,
+  alEnfocar,
 }: {
   c: Campo;
   valor: string;
@@ -98,6 +99,7 @@ function PreguntaCampo({
   opciones?: string[];
   sugerencias?: string[];
   alCambiar: (v: string) => void;
+  alEnfocar?: () => void;
 }) {
   const sufijo =
     c.tipo === "moneda" ? "USD" : c.tipo === "dias" ? "días" : c.tipo === "porcentaje" ? "%" : null;
@@ -118,6 +120,7 @@ function PreguntaCampo({
         <textarea
           value={valor}
           onChange={(ev) => alCambiar(ev.target.value)}
+          onFocus={alEnfocar}
           rows={3}
           placeholder="Opcional. Se imprime al pie del documento."
           className={cn(BASE_CAMPO, "py-2 resize-y leading-relaxed")}
@@ -127,6 +130,7 @@ function PreguntaCampo({
           value={valor}
           disabled={bloqueado}
           onChange={(ev) => alCambiar(ev.target.value)}
+          onFocus={alEnfocar}
           className={cn(BASE_CAMPO, "h-9 pr-7 appearance-none cursor-pointer disabled:opacity-70")}
           style={{
             backgroundImage:
@@ -147,6 +151,7 @@ function PreguntaCampo({
           type="date"
           value={valor}
           onChange={(ev) => alCambiar(ev.target.value)}
+          onFocus={alEnfocar}
           className={cn(BASE_CAMPO, "num h-9")}
         />
       ) : (
@@ -156,6 +161,7 @@ function PreguntaCampo({
             list={listaId}
             readOnly={bloqueado}
             onChange={(ev) => alCambiar(ev.target.value)}
+            onFocus={alEnfocar}
             inputMode={c.tipo === "texto" ? undefined : "numeric"}
             className={cn(
               BASE_CAMPO,
@@ -262,6 +268,14 @@ export default function Generador() {
   const [intento, setIntento] = useState(false);
   /** Reserva madre cuando se entra a hacer una adenda. */
   const [reservaMadre, setReservaMadre] = useState<Registro | null>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
+
+  /** Cuando el asesor entra a un campo, lleva a la vista esa parte del documento. */
+  function llevarAlCampo(id: string) {
+    previewRef.current
+      ?.querySelector(`[data-campo="${id}"]`)
+      ?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
 
   const yo = e.asesores.find((a) => a.id === e.yo)!;
   const plantilla = plantillaId ? plantillaPorId(plantillaId) : null;
@@ -594,6 +608,7 @@ export default function Generador() {
                               opciones={opcionesDinamicas(c)}
                               sugerencias={c.id === "direccion" && !reservaMadre ? sugerencias : undefined}
                               alCambiar={(v) => setValores((x) => ({ ...x, [c.id]: v }))}
+                              alEnfocar={() => llevarAlCampo(c.id)}
                             />
                           </div>
                         ))}
@@ -675,7 +690,10 @@ export default function Generador() {
               )}
             </header>
 
-            <div className="max-h-[52vh] lg:max-h-[calc(100dvh-260px)] overflow-y-auto scroll bg-[var(--papel-hundido)]/40 p-3">
+            <div
+              ref={previewRef}
+              className="max-h-[52vh] lg:max-h-[calc(100dvh-260px)] overflow-y-auto scroll bg-[var(--papel-hundido)]/40 p-3"
+            >
               <div className="alza rounded-[var(--r-sm)] overflow-hidden">
                 <Hoja plantilla={plantilla} valores={valoresDocumento} ahora={e.ahora} compacta />
               </div>
