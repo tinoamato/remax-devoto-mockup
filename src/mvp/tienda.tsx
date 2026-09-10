@@ -14,12 +14,14 @@ import {
   claveInmueble,
   desdeIso,
   asesores as asesoresSeed,
+  contactosIniciales,
   correosIniciales,
   registrosIniciales,
   reglasIniciales,
   umbralesIniciales,
   type Adenda,
   type Asesor,
+  type ContactoRegistro,
   type Correo,
   type Evento,
   type EstadoRegistro,
@@ -46,6 +48,7 @@ export interface Estado {
   registros: Registro[];
   adendas: Adenda[];
   asesores: Asesor[];
+  contactos: ContactoRegistro[];
   correos: Correo[];
   reglas: Regla[];
   umbrales: Umbrales;
@@ -58,6 +61,7 @@ const inicial: Estado = {
   registros: registrosIniciales,
   adendas: adendasIniciales,
   asesores: asesoresSeed,
+  contactos: contactosIniciales,
   correos: correosIniciales,
   reglas: reglasIniciales,
   umbrales: umbralesIniciales,
@@ -590,6 +594,10 @@ function reducir(e: Estado, a: Accion): Estado {
       return {
         ...e,
         asesores: e.asesores.map((x) => (x.id === a.asesorId ? { ...x, ultimoContacto: e.ahora } : x)),
+        contactos: [
+          { id: nid("ct"), asesorId: a.asesorId, ts: e.ahora, canal: "Manual", nota: a.nota },
+          ...e.contactos,
+        ],
         avisos: avisar(e, `Contacto con ${as?.nombre} registrado. El contador vuelve a cero.`, "ok"),
       };
     }
@@ -649,6 +657,20 @@ export interface PlazoVivo {
   plazo: Plazo;
   urgencia: Urgencia;
   asesor: Asesor;
+}
+
+export interface ResumenContacto {
+  asesor: Asesor;
+  diasSinContacto: number;
+  /** Negativo cuando ya se pasó del tope. */
+  diasParaLimite: number;
+  estado: "vencido" | "porVencer" | "ok";
+  /** Más reciente primero. */
+  historial: ContactoRegistro[];
+  /** Veces que se pasó el tope entre dos contactos en los últimos 12 meses, incluyendo el atraso actual. */
+  pasados12m: number;
+  /** Cuándo saldría el próximo aviso automático si la regla de contacto está prendida. */
+  proximoDisparo: { tipo: "previo" | "vencido"; ts: number } | null;
 }
 
 export type Semaforo = "alto" | "medio" | "bajo";
@@ -753,6 +775,41 @@ export function useDerivados() {
       return d < a.topeContactoDias && d >= a.topeContactoDias - regla.diasAntes;
     });
 
+    /** Vista completa de cadencia por agente, para el tab de Contacto. */
+    const reglaContacto = e.reglas.find((r) => r.id === "contacto")!;
+    const resumenContacto: ResumenContacto[] = e.asesores.map((a) => {
+      const diasSinContacto = (e.ahora - a.ultimoContacto) / dia;
+      const diasParaLimite = a.topeContactoDias - diasSinContacto;
+      const estado: "vencido" | "porVencer" | "ok" =
+        diasSinContacto >= a.topeContactoDias
+          ? "vencido"
+          : diasSinContacto >= a.topeContactoDias - reglaContacto.diasAntes
+            ? "porVencer"
+            : "ok";
+
+      const historial = e.contactos
+        .filter((c) => c.asesorId === a.id)
+        .sort((x, y) => y.ts - x.ts);
+
+      /** Cuántas veces, mirando el historial de 12 meses, pasó más del tope entre dos contactos. */
+      const asc = [...historial].sort((x, y) => x.ts - y.ts);
+      let pasados12m = 0;
+      for (let i = 1; i < asc.length; i++) {
+        if ((asc[i].ts - asc[i - 1].ts) / dia > a.topeContactoDias) pasados12m++;
+      }
+      if (diasSinContacto > a.topeContactoDias) pasados12m++;
+
+      const tsPrevio = a.ultimoContacto + (a.topeContactoDias - reglaContacto.diasAntes) * dia;
+      const tsVencido = a.ultimoContacto + a.topeContactoDias * dia;
+      const proximoDisparo: { tipo: "previo" | "vencido"; ts: number } | null = !reglaContacto.activa
+        ? null
+        : e.ahora < tsPrevio
+          ? { tipo: "previo", ts: tsPrevio }
+          : { tipo: "vencido", ts: tsVencido };
+
+      return { asesor: a, diasSinContacto, diasParaLimite, estado, historial, pasados12m, proximoDisparo };
+    });
+
     /** Lo que las reglas activas dispararían en los próximos días. */
     const reglaPrevio = e.reglas.find((r) => r.id === "previo")!;
     const cola = plazosVivos
@@ -800,6 +857,7 @@ export function useDerivados() {
       seApagan,
       contactoVencido,
       contactoPorVencer,
+      resumenContacto,
       cola,
       facturacion12,
       registrosNuevos,

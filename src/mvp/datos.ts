@@ -111,6 +111,49 @@ export const asesores: Asesor[] = crudos.map(([nombre, base, semilla, ant, seq, 
   ultimoContacto: AHORA - Math.round(tope * (0.35 + ((i * 17) % 13) / 10)) * dia,
 }));
 
+/* ── Historial de contacto con gerencia ─────────────────────── */
+
+export interface ContactoRegistro {
+  id: string;
+  asesorId: string;
+  ts: number;
+  canal: string;
+  nota: string;
+}
+
+const CANALES_CONTACTO = ["Llamada", "Reunión", "WhatsApp", "Visita a la oficina", "Videollamada"];
+
+/**
+ * Camina hacia atrás desde el último contacto real, con intervalos que a
+ * veces respetan el tope y a veces se lo saltean bastante, para que el
+ * historial de 12 meses tenga ejemplos verosímiles de ambos casos.
+ */
+function historialDe(asesorId: string, tope: number, ultimo: number, semilla: number): ContactoRegistro[] {
+  const out: ContactoRegistro[] = [{ id: `${asesorId}-c0`, asesorId, ts: ultimo, canal: CANALES_CONTACTO[semilla % CANALES_CONTACTO.length], nota: "" }];
+  const limite = AHORA - 365 * dia;
+  let ts = ultimo;
+  let k = 1;
+  while (true) {
+    const factor = 0.4 + ((semilla * 13 + k * 29) % 17) / 10; // entre 0.4x y 2.0x el tope
+    const gap = Math.max(2, Math.round(tope * factor));
+    ts -= gap * dia;
+    if (ts < limite) break;
+    out.push({
+      id: `${asesorId}-c${k}`,
+      asesorId,
+      ts,
+      canal: CANALES_CONTACTO[(semilla + k * 7) % CANALES_CONTACTO.length],
+      nota: "",
+    });
+    k++;
+  }
+  return out;
+}
+
+export const contactosIniciales: ContactoRegistro[] = asesores.flatMap((a, i) =>
+  historialDe(a.id, a.topeContactoDias, a.ultimoContacto, i + 1),
+);
+
 /* ── Propiedades ────────────────────────────────────────────── */
 
 /** Sólo se usa para armar los registros de demostración. */
