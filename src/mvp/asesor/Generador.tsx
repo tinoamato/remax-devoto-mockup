@@ -405,8 +405,8 @@ export default function Generador() {
             </h2>
             <p className="text-[12.5px] text-[var(--tinta-suave)] mt-1 max-w-[42ch] mx-auto">
               {registrado === "adenda"
-                ? "Quedó marcada como nueva en Reservas. El plazo se corre recién cuando gerencia le da el alta."
-                : "Quedó marcada como nueva en Reservas. Gerencia tiene que darle el alta para que empiece a contar en vencimientos."}
+                ? "Quedó marcada como nueva en Documentos generados. El plazo se corre recién cuando gerencia la valide."
+                : "Quedó marcada como nueva en Documentos generados. Gerencia tiene que validarla para que empiece a contar en vencimientos."}
             </p>
 
             {registrado === "documento" && ultimo && (
@@ -643,7 +643,7 @@ export default function Generador() {
                     </p>
                     <p className="text-[11.5px] text-[var(--tinta-suave)] mt-1">
                       Se cuenta desde la firma de la adenda, como dice el documento. Se aplica recién
-                      cuando gerencia le da el alta.
+                      cuando gerencia la valida.
                     </p>
                   </div>
                 )}
@@ -725,8 +725,8 @@ export default function Generador() {
                   Registrar
                 </Boton>
                 <p className="text-[11.5px] text-[var(--tinta-suave)] mt-1.5 leading-snug">
-                  Registrar es lo que hace que gerencia vea la operación y que empiecen a correr los plazos.
-                  Imprimir o enviar por correo no la registra.
+                  Registrar es lo que hace que gerencia vea la operación en Documentos generados; los plazos
+                  arrancan a correr recién cuando gerencia la valide. Imprimir o enviar por correo no la registra.
                 </p>
               </div>
             </footer>

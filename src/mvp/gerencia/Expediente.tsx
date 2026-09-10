@@ -337,10 +337,10 @@ export default function Expediente() {
         <div className="shrink-0 flex items-center gap-2.5 px-4 py-2.5 border-b border-[var(--ambar-borde)] bg-[var(--ambar-tenue)]/60">
           <Icono n="alerta" s={15} className="text-[var(--ambar)] shrink-0" />
           <p className="text-[12.5px] text-[var(--tinta-media)] flex-1">
-            Expediente nuevo: todavía no cuenta para las métricas.
+            Documento nuevo: todavía no cuenta para las métricas.
           </p>
           <Boton chico tono="primario" ico="tilde" onClick={() => d({ t: "registro.aprobar", registroId: r.id })}>
-            Dar de alta
+            Validar
           </Boton>
         </div>
       )}
@@ -499,7 +499,7 @@ export default function Expediente() {
                   {!a.aprobado && (
                     <div className="mt-2">
                       <Boton chico tono="primario" ico="tilde" onClick={() => d({ t: "adenda.aprobar", adendaId: a.id })}>
-                        Dar de alta
+                        Validar
                       </Boton>
                       <span className="text-[11px] text-[var(--tinta-suave)] ml-2">
                         El plazo no se movió todavía.

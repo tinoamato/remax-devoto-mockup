@@ -430,7 +430,7 @@ function armarRegistro(s: Semilla): Registro {
     ev(gen, "generado", `Documento generado y registrado por el agente.`, "Agente"),
   ];
   if (!s.pendiente) {
-    historial.push(ev(gen + 1800_000, "estado", "Gerencia le dio el alta. Ya cuenta para las métricas.", "Gerencia"));
+    historial.push(ev(gen + 1800_000, "estado", "Gerencia validó el documento. Ya cuenta para las métricas.", "Gerencia"));
   }
   if (s.bajaPedida) {
     historial.push(

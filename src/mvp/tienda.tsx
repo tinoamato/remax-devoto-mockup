@@ -236,7 +236,7 @@ function reducir(e: Estado, a: Accion): Estado {
           evento(
             e.ahora,
             "generado",
-            `${pl.nombre} generado y registrado. Vigencia desde el ${new Date(desde).toLocaleDateString("es-AR")}; quedan corriendo ${plazos.length} plazos. Pendiente de que gerencia le dé el alta.`,
+            `${pl.nombre} generado y registrado. Vigencia desde el ${new Date(desde).toLocaleDateString("es-AR")}; quedan corriendo ${plazos.length} plazos. Pendiente de que gerencia lo valide.`,
             asesor?.nombre ?? "Agente",
           ),
         ],
@@ -244,7 +244,7 @@ function reducir(e: Estado, a: Accion): Estado {
       return {
         ...e,
         registros: [reg, ...e.registros],
-        avisos: avisar(e, `${id} registrado, marcado como nuevo. Gerencia lo ve en Reservas para darle el alta.`, "ok"),
+        avisos: avisar(e, `${id} registrado, marcado como nuevo. Gerencia lo ve en Documentos generados para validarlo.`, "ok"),
       };
     }
 
@@ -256,10 +256,10 @@ function reducir(e: Estado, a: Accion): Estado {
           aprobado: true,
           historial: [
             ...r.historial,
-            evento(e.ahora, "estado", "Gerencia le dio el alta. Ya cuenta para las métricas.", "Gerencia"),
+            evento(e.ahora, "estado", "Gerencia validó el documento. Ya cuenta para las métricas.", "Gerencia"),
           ],
         })),
-        avisos: avisar(e, `${a.registroId} dado de alta.`, "ok"),
+        avisos: avisar(e, `${a.registroId} validado.`, "ok"),
       };
 
     case "registro.pedirBaja":
@@ -414,12 +414,12 @@ function reducir(e: Estado, a: Accion): Estado {
               evento(
                 e.ahora,
                 "adenda",
-                `${autor} generó la adenda ${ad.id} sobre «${p.rotulo}» (${a.dias} días${a.nuevoPrecio ? `, nuevo precio USD ${a.nuevoPrecio.toLocaleString("es-AR")}` : ""}). Pendiente de que gerencia le dé el alta; el plazo no se movió todavía.`,
+                `${autor} generó la adenda ${ad.id} sobre «${p.rotulo}» (${a.dias} días${a.nuevoPrecio ? `, nuevo precio USD ${a.nuevoPrecio.toLocaleString("es-AR")}` : ""}). Pendiente de que gerencia la valide; el plazo no se movió todavía.`,
                 autor,
               ),
             ],
           })),
-          avisos: avisar(e, `${ad.id} generada, marcada como nueva. Gerencia la ve en el expediente para darle el alta.`, "ok"),
+          avisos: avisar(e, `${ad.id} generada, marcada como nueva. Gerencia la ve en Documentos generados para validarla.`, "ok"),
         };
       }
 
@@ -471,12 +471,12 @@ function reducir(e: Estado, a: Accion): Estado {
             evento(
               e.ahora,
               "adenda",
-              `Gerencia dio el alta a ${ad.id}. «${p.rotulo}» queda corrido hasta el ${new Date(nuevo).toLocaleDateString("es-AR")}.${ad.nuevoPrecio ? ` Nuevo precio USD ${ad.nuevoPrecio.toLocaleString("es-AR")}.` : ""}`,
+              `Gerencia validó ${ad.id}. «${p.rotulo}» queda corrido hasta el ${new Date(nuevo).toLocaleDateString("es-AR")}.${ad.nuevoPrecio ? ` Nuevo precio USD ${ad.nuevoPrecio.toLocaleString("es-AR")}.` : ""}`,
               "Gerencia",
             ),
           ],
         })),
-        avisos: avisar(e, `${ad.id} dada de alta. El plazo quedó corrido.`, "ok"),
+        avisos: avisar(e, `${ad.id} validada. El plazo quedó corrido.`, "ok"),
       };
     }
 
@@ -906,7 +906,6 @@ export function useDerivados() {
     const registrosNuevos = e.registros.filter((r) => !r.aprobado);
     const bajasPedidas = e.registros.filter((r) => r.bajaPedida);
     const adendasNuevas = e.adendas.filter((a) => !a.aprobado);
-    const porRevisar = registrosNuevos.length + bajasPedidas.length + adendasNuevas.length;
 
     return {
       reservaVigenteDe,
@@ -928,7 +927,6 @@ export function useDerivados() {
       registrosNuevos,
       bajasPedidas,
       adendasNuevas,
-      porRevisar,
     };
   }, [e]);
 }
